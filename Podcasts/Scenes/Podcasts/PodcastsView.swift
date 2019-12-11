@@ -10,7 +10,7 @@ import SwiftUI
 
 struct PodcastsView : View {
     
-    @ObjectBinding var podcastViewModel: PodcastsViewModel
+    @ObservedObject var podcastViewModel: PodcastsViewModel
     
     init(podcastViewModel: PodcastsViewModel = PodcastsViewModel()) {
         self.podcastViewModel = podcastViewModel
@@ -22,20 +22,20 @@ struct PodcastsView : View {
                 Spinner().navigationBarTitle(Text("Best Podcasts"), displayMode: NavigationBarItem.TitleDisplayMode.inline)
             } else {
                 List {
-                    ForEach(podcastViewModel.podcasts.identified(by: \.id)) { podcast in
-                        NavigationButton(destination: PodcastView(podcast: podcast), label: {
+                    ForEach(podcastViewModel.podcasts, id: \.id) { podcast in
+                        NavigationLink(destination: PodcastView(podcast: podcast), label: {
                             PodcastRow(podcast: podcast)
                         })
                     }
-                    Rectangle().frame(height: 0).onAppear {
+                    Rectangle().frame(height: CGFloat(0)).onAppear {
                         self.podcastViewModel.bestPodcasts()
                     }
                 }.navigationBarTitle(Text("Best Podcasts"), displayMode: NavigationBarItem.TitleDisplayMode.inline)
                 PlayerView()
             }
-            }.onAppear(perform: {
-                self.podcastViewModel.bestPodcasts()
-            })
+        }.onAppear(perform: {
+            self.podcastViewModel.bestPodcasts()
+        })
     }
     
 }

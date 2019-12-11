@@ -12,7 +12,7 @@ import MediaPlayer
 import Combine
 import SwiftUI
 
-class Player: BindableObject {
+class Player: ObservableObject {
     
     enum State {
         case empty

@@ -11,9 +11,9 @@ import SwiftUI
 
 struct PodcastView : View {
     
-    @ObjectBinding var podcastViewModel: PodcastViewModel
-    @ObjectBinding var imageLoader: ImageLoader
-    @ObjectBinding var player: Player
+    @ObservedObject var podcastViewModel: PodcastViewModel
+    @ObservedObject var imageLoader: ImageLoader
+    @ObservedObject var player: Player
     
     init(podcast: Podcast,
          imageLoader: ImageLoader = ImageLoader(),
@@ -39,8 +39,8 @@ struct PodcastView : View {
                         }).foregroundColor(.green)
                         Spacer()
                     }
-                    ForEach(podcastViewModel.episodes.identified(by: \.id)) { episode in
-                        NavigationButton(destination: EpisodeView(episode: episode)) {
+                    ForEach(podcastViewModel.episodes, id: \.id) { episode in
+                        NavigationLink(destination: EpisodeView(episode: episode)) {
                             EpisodeRow(episode: episode)
                         }
                     }

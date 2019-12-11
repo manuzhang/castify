@@ -53,6 +53,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		3C9712A909CB5AB96DD31ADE /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		3C97133A4ABCCD942B0068E4 /* KingfisherSwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = KingfisherSwiftUI.framework; path = "/Users/doriadong/git/podcasts-swift-ui/Carthage/Build/iOS/KingfisherSwiftUI.framework"; sourceTree = "<absolute>"; };
 		C307F2D922ABEFEA001579EA /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		C307F2FB22AC18DA001579EA /* PodcastRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastRow.swift; sourceTree = "<group>"; };
 		C307F2FE22AC1933001579EA /* Previews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Previews.swift; sourceTree = "<group>"; };
@@ -229,6 +231,8 @@
 			isa = PBXGroup;
 			children = (
 				C3D56D0422AE81C600B0A948 /* Kingfisher.framework */,
+				3C97133A4ABCCD942B0068E4 /* KingfisherSwiftUI.framework */,
+				3C9712A909CB5AB96DD31ADE /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -344,7 +348,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1100;
-				LastUpgradeCheck = 1100;
+				LastUpgradeCheck = 1120;
 				ORGANIZATIONNAME = com.github.albertopeam;
 				TargetAttributes = {
 					C3968F0622AA416C004CB76C = {
@@ -609,6 +613,8 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Carthage/Build/iOS",
+					"\"${PROJECT_DIR}/Carthage/Build/iOS\"/**",
+					"\"${PROJECT_DIR}/Carthage/Build/iOS\"/**",
 				);
 				INFOPLIST_FILE = Podcasts/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
@@ -635,6 +641,8 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Carthage/Build/iOS",
+					"\"${PROJECT_DIR}/Carthage/Build/iOS\"/**",
+					"\"${PROJECT_DIR}/Carthage/Build/iOS\"/**",
 				);
 				INFOPLIST_FILE = Podcasts/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;

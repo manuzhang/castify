@@ -12,7 +12,7 @@ import Combine
 import class Kingfisher.ImageDownloader
 
 //TODO: not loading images from cache, check the another cache...
-class ImagesLoader: BindableObject {
+class ImagesLoader: ObservableObject {
     
     var didChange = PassthroughSubject<ImagesLoader, Never>()
     private(set) var images = [URL: UIImage]() {

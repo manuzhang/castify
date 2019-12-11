@@ -11,7 +11,7 @@ import Combine
 
 struct PlayerView : View {
     
-    @ObjectBinding var player: Player
+    @ObservedObject var player: Player
     
     init(player: Player = Container.player) {
         self.player = player

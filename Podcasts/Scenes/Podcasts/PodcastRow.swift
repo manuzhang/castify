@@ -10,7 +10,7 @@ import SwiftUI
 
 struct PodcastRow : View {
     
-    @ObjectBinding var imageLoader: ImageLoader
+    @ObservedObject var imageLoader: ImageLoader
     let podcast: Podcast
     
     init(imageLoader: ImageLoader = ImageLoader(),

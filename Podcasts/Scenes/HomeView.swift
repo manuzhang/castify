@@ -13,9 +13,11 @@ struct HomeView : View {
     @State private var selected = 0
     
     var body: some View {
-        TabbedView(selection: $selected) {
+        TabView(selection: $selected) {
             PodcastsView()
-                .tabItemLabel(Text("Podcasts"))
+                .tabItem {
+                    Text("Podcasts")
+                }
                 .tag(0)
 //            Text("...")
 //                .font(.title)

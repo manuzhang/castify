@@ -14,7 +14,7 @@ import struct Kingfisher.DownloadTask
 import class Kingfisher.ImageCache
 import class Kingfisher.KingfisherManager
 
-class ImageLoader: BindableObject {
+class ImageLoader: ObservableObject {
     
     var didChange = PassthroughSubject<ImageLoader, Never>()
     private let downloader: ImageDownloader

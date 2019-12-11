@@ -10,7 +10,7 @@ import Foundation
 import Combine
 import SwiftUI
 
-class PodcastViewModel: BindableObject {
+class PodcastViewModel: ObservableObject {
     
     var didChange = PassthroughSubject<PodcastViewModel, Never>()
     private let podcastRepository: PodcastRepository

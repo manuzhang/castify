@@ -9,21 +9,21 @@
 import SwiftUI
 
 struct HomeView : View {
-    
-    @State private var selected = 0
-    
+        
     var body: some View {
-        TabView(selection: $selected) {
-            PodcastsView()
+        TabView {
+            SearchView()
                 .tabItem {
-                    Text("Podcasts")
+                    Text("Search")
                 }
                 .tag(0)
-//            Text("...")
-//                .font(.title)
-//                .tabItemLabel(Text("Search"))
-//                .tag(1)
+            PodcastsView()
+                .tabItem {
+                    Text("Play")
+                }
+                .tag(1)
         }
+        .font(.headline)
     }
 }
 

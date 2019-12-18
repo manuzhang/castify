@@ -1,2 +1,4 @@
-github "onevcat/Kingfisher" ~> 5.7.0
+github "onevcat/Kingfisher" "5.12.0"
+github "Moya/Moya" "14.0.0-beta.5"
+github "nmdias/FeedKit" "9.0.0"
 

@@ -7,16 +7,23 @@
 //
 
 import Foundation
+import FeedKit
 
 struct Episode: Equatable {
-    let id: String
+    let author: String
     let title: String
     let description: String
     let pubDate: Date
-    let audio: URL?
-    let audioLenght: Int
-    let image: URL?
-    let thumbnail: URL?
-    let maybeAudioInvalid: Bool
-    let explicitContent: Bool
+    let streamUrl: String
+
+    var imageUrl: String?
+
+    init(feedItem: RSSFeedItem) {
+        self.streamUrl = feedItem.enclosure?.attributes?.url ?? ""
+        self.title = feedItem.title ?? ""
+        self.pubDate = feedItem.pubDate ?? Date()
+        self.description = feedItem.iTunes?.iTunesSubtitle ?? feedItem.description ?? ""
+        self.author = feedItem.iTunes?.iTunesAuthor ?? ""
+        self.imageUrl = feedItem.iTunes?.iTunesImage?.attributes?.href
+    }
 }

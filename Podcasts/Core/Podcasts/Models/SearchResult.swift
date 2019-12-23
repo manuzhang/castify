@@ -12,9 +12,4 @@ struct SearchResult: Decodable {
 
     let resultCount: Int
     let results: [Podcast]
-
-    init(from decoder: Decoder) throws {
-
-
-    }
 }

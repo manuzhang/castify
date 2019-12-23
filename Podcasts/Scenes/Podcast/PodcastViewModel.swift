@@ -13,7 +13,6 @@ import SwiftUI
 class PodcastViewModel: ObservableObject {
     
     var didChange = PassthroughSubject<PodcastViewModel, Never>()
-    private let podcastRepository: PodcastRepository
     private var episodesCancelable: Cancellable?
     private(set) var podcast: Podcast {
         didSet { didChange.send(self) }
@@ -22,10 +21,8 @@ class PodcastViewModel: ObservableObject {
         didSet { didChange.send(self) }
     }
     
-    init(podcast: Podcast,
-         podcastRepository: PodcastRepository = PodcastRepository()) {
+    init(podcast: Podcast) {
         self.podcast = podcast
-        self.podcastRepository = podcastRepository
     }
     
     deinit {
@@ -33,10 +30,10 @@ class PodcastViewModel: ObservableObject {
     }
 
     func loadEpisodes() {
-        episodesCancelable = podcastRepository.episodes(for: podcast)
+/*        episodesCancelable = podcastRepository.episodes(for: podcast)
             .receive(on: RunLoop.main)
             .replaceError(with: [])
-            .assign(to: \.episodes, on: self)
+            .assign(to: \.episodes, on: self)*/
     }
     
 }

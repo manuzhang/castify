@@ -21,26 +21,18 @@ struct PodcastRow : View {
     
     var body: some View {
         HStack {
-            Image(uiImage: self.imageLoader.image(for: self.podcast.thumbnail))
+/*            Image(uiImage: self.imageLoader.image(for: self.podcast.thumbnail))
                 .frame(width: 64, height: 64, alignment: .center)
                 .aspectRatio(contentMode: ContentMode.fit)
-                .clipShape(Circle())
+                .clipShape(Circle())*/
             VStack(alignment: .leading) {
-                Text(podcast.title)
+                Text(podcast.trackName)
                     .lineLimit(nil)
                     .font(.headline)
-                Text(podcast.language)
+/*                Text(podcast.language)
                     .lineLimit(1)
-                    .font(.caption)
+                    .font(.caption)*/
             }
         }
     }
 }
-
-#if DEBUG
-struct PodcastRow_Previews : PreviewProvider {
-    static var previews: some View {
-        PodcastRow(podcast: podcasts.first!)
-    }
-}
-#endif

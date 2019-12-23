@@ -21,7 +21,7 @@ struct PodcastHeaderView : View {
     
     var body: some View {
         HStack {
-            VStack {
+/*            VStack {
                 Image(uiImage: imageLoader.image(for: podcast.thumbnail))
                     .frame(width: 128, height: 128)
                     .aspectRatio(contentMode: ContentMode.fit)
@@ -33,10 +33,10 @@ struct PodcastHeaderView : View {
                     .lineLimit(1)
                     .font(.caption)
                     .foregroundColor(Color.red)
-            }
+            }*/
             Spacer().frame(maxWidth: 20)
             VStack(alignment: .leading) {
-                Text(podcast.title)
+                Text(podcast.trackName)
                     .lineLimit(nil)
                     .font(.headline)
                 Spacer().frame(maxHeight: 10)
@@ -50,10 +50,3 @@ struct PodcastHeaderView : View {
     
 }
 
-#if DEBUG
-struct PodcastHeaderView_Previews : PreviewProvider {
-    static var previews: some View {
-        PodcastHeaderView(podcast: podcasts.first!, imageLoader: ImageLoader())
-    }
-}
-#endif

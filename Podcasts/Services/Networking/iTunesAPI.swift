@@ -29,11 +29,11 @@ extension ITunesAPI: TargetType {
     }
 
     var method: Method {
-        return .get
+        .get
     }
 
     var sampleData: Data {
-        return Data()
+        Data()
     }
 
     var task: Task {
@@ -45,7 +45,7 @@ extension ITunesAPI: TargetType {
     }
 
     var headers: [String: String]? {
-        return ["Content-type": "application/json"]
+        ["Content-type": "application/json"]
     }
 
 }

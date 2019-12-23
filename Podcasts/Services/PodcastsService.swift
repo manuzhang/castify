@@ -48,7 +48,7 @@ extension PodcastsService {
     func deleteEpisode(_ episode: Episode) {
         let savedEpisodes = downloadedEpisodes
         let filteredEpisodes = savedEpisodes.filter { filteredEpisode -> Bool in
-            return filteredEpisode.title != episode.title
+            filteredEpisode.title != episode.title
         }
 
         do {
@@ -68,17 +68,17 @@ extension PodcastsService {
         guard let savedPodcastsData = UserDefaults.standard.data(forKey: UserDefaults.favoritedPodcastKey) else { return [] }
         guard let savedPodcasts = try! NSKeyedUnarchiver
             .unarchivedObject(ofClasses: [Podcast.self], from: savedPodcastsData) as? [Podcast] else { return [] }
-        savedPodcasts
+        return savedPodcasts
     }
 
     fileprivate func fetchDownloadedEpisodes() -> [Episode] {
         guard let episodesData = UserDefaults.value(forKey: UserDefaults.downloadedEpisodesKey) as? Data else { return [] }
 
         do {
-            try JSONDecoder().decode([Episode].self, from: episodesData)
+            return try JSONDecoder().decode([Episode].self, from: episodesData)
         } catch let decodeError {
             print("Failed to decode:", decodeError)
-            []
+            return []
         }
     }
 

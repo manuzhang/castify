@@ -70,7 +70,7 @@ class Player: ObservableObject {
     }
     
     var hasEpisodes: Bool {
-        return !episodes.isEmpty
+        !episodes.isEmpty
     }
     
     func play() {

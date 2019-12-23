@@ -13,15 +13,12 @@ import Combine
 class PodcastsViewModel: ObservableObject {
     
     var didChange = PassthroughSubject<PodcastsViewModel, Never>()
-    private let podcastRepository: PodcastRepository
     private var podcastsCancelable: Cancellable?
     private var page: Int
     //TODO: enum state
     private(set) var podcasts = [Podcast]() { didSet { didChange.send(self) } }
     
-    init(podcastRepository: PodcastRepository = PodcastRepository(),
-         page: Int = 0) {
-        self.podcastRepository = podcastRepository
+    init(page: Int = 0) {
         self.page = page
     }
     
@@ -30,11 +27,11 @@ class PodcastsViewModel: ObservableObject {
     }
     
     func bestPodcasts() {
-        podcastsCancelable = podcastRepository
+        /*podcastsCancelable = podcastRepository
             .bestPodcasts(page: page)
             .replaceError(with: [])
             .receive(on: RunLoop.main)
-            .sink(receiveValue: { self.podcasts.append(contentsOf: $0) })
+            .sink(receiveValue: { self.podcasts.append(contentsOf: $0) })*/
         page += 1
     }
     

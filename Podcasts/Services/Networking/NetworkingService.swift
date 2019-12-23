@@ -77,22 +77,22 @@ extension NetworkingService {
     func downloadEpisode(_ episode: Episode) {
         print("Downloading episode using Alamofire at stream url:", episode.streamUrl)
 
-/*        let downloadRequest = DownloadRequest.suggestedDownloadDestination()
+        let downloadRequest = DownloadRequest.suggestedDownloadDestination()
 
         AF.download(episode.streamUrl, to: downloadRequest).downloadProgress { progress in
             NotificationCenter.default.post(name: NSNotification.Name("downloadProgress"), object: nil,
                                             userInfo: ["title": episode.title, "progress": progress.fractionCompleted])
             }.response { response in
-                print(response.destinationURL?.absoluteString ?? "")
+                print(response.fileURL?.absoluteString ?? "")
 
-                let episodeDownloadComplete = EpisodeDownloadComplete(fileUrl: response.destinationURL?.absoluteString ?? "",
+                let episodeDownloadComplete = EpisodeDownloadComplete(fileUrl: response.fileURL?.absoluteString ?? "",
                                                                       episode.title)
                 NotificationCenter.default.post(name: .downloadComplete, object: episodeDownloadComplete, userInfo: nil)
 
                 var downloadedEpisodes = self.podcastsService?.downloadedEpisodes
                 guard let index = downloadedEpisodes?.firstIndex(where: { $0.title == episode.title
                                                                 && $0.author == episode.author }) else { return }
-                downloadedEpisodes?[index].fileUrl = response.destinationURL?.absoluteString ?? ""
+                downloadedEpisodes?[index].fileUrl = response.fileURL?.absoluteString ?? ""
 
                 do {
                     let data = try JSONEncoder().encode(downloadedEpisodes)
@@ -100,6 +100,6 @@ extension NetworkingService {
                 } catch let downloadingError {
                     print("Failed to encode downloaded episodes with file url update:", downloadingError)
                 }
-        }*/
+        }
     }
 }

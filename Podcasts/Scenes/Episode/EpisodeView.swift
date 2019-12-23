@@ -22,11 +22,3 @@ struct EpisodeView : View {
         }.navigationBarTitle(Text(episode.title))
     }
 }
-
-#if DEBUG
-struct EpisodeView_Previews : PreviewProvider {
-    static var previews: some View {
-        EpisodeView(episode: episodes.first!)
-    }
-}
-#endif

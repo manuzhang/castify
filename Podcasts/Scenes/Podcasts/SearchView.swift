@@ -7,7 +7,7 @@ struct SearchView: View {
         NavigationView {
             VStack {
                 SearchBar(text: $viewModel.name) {
-                    self.viewModel.search()
+                    // self.viewModel.search()
                 }
 
                 List(viewModel.podcasts) { podcast in

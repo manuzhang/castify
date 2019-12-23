@@ -39,7 +39,7 @@ struct PodcastView : View {
                         }).foregroundColor(.green)
                         Spacer()
                     }
-                    ForEach(podcastViewModel.episodes, id: \.id) { episode in
+                    ForEach(podcastViewModel.episodes, id: \.self) { episode in
                         NavigationLink(destination: EpisodeView(episode: episode)) {
                             EpisodeRow(episode: episode)
                         }
@@ -47,17 +47,10 @@ struct PodcastView : View {
                 }
             }
             PlayerView()
-            }.navigationBarTitle(Text(podcastViewModel.podcast.title))
+            }.navigationBarTitle(Text(podcastViewModel.podcast.trackName))
             .onAppear(perform: {
                 self.podcastViewModel.loadEpisodes()
             })
     }
 }
 
-#if DEBUG
-struct PodcastView_Previews : PreviewProvider {
-    static var previews: some View {
-        PodcastView(podcast: podcasts.first!)
-    }
-}
-#endif

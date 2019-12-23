@@ -24,10 +24,3 @@ struct EpisodeRow : View {
     
 }
 
-#if DEBUG
-struct EpisodeRow_Previews : PreviewProvider {
-    static var previews: some View {
-        EpisodeRow(episode: episodes.first!)
-    }
-}
-#endif

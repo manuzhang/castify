@@ -7,15 +7,15 @@ struct SearchView: View {
         NavigationView {
             VStack {
                 SearchBar(text: $viewModel.name) {
-                    // self.viewModel.search()
+                    self.viewModel.search()
                 }
 
                 List(viewModel.podcasts) { podcast in
                     SearchRow(viewModel: self.viewModel, podcast: podcast)
-                       // .onAppear { self.viewModel.fetchImage(for: podcast) }
+                           // .onAppear { self.viewModel.fetchImage(for: podcast) }
                 }
-                }
-                .navigationBarTitle(Text("Search"))
+            }
+                    .navigationBarTitle(Text("Search"))
         }
     }
 }

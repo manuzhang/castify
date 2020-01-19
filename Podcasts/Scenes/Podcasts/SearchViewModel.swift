@@ -17,13 +17,13 @@ final class SearchViewModel: ObservableObject {
         searchCancellable?.cancel()
     }
 
-    func search(with query: String) {
+    func search() {
         guard !name.isEmpty else {
             return podcasts = []
         }
 
         let networkingService = NetworkingService()
-        networkingService.fetchPodcasts(searchText: query) { [weak self] podcasts in
+        networkingService.fetchPodcasts(searchText: name) { [weak self] podcasts in
             guard let self = self else { return }
             self.podcasts = podcasts
         }

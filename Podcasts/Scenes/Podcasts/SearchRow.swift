@@ -14,9 +14,8 @@ struct SearchRow: View {
                         .overlay(Circle().stroke(Color.black, lineWidth: 1))
             }*/
 
-            Text("podcast")
+            Text(podcast.trackName)
                     .font(Font.system(size: 18).bold())
-
             Spacer()
         }
                 .frame(height: 60)

@@ -37,13 +37,4 @@ struct PodcastsView : View {
             self.podcastViewModel.bestPodcasts()
         })
     }
-    
 }
-
-#if DEBUG
-struct ContentView_Previews : PreviewProvider {
-    static var previews: some View {
-        PodcastsView()
-    }
-}
-#endif

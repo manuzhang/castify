@@ -1,6 +1,6 @@
 //
 //  PodcastHeaderView.swift
-//  Podcasts
+//  Search
 //
 //  Created by Alberto on 10/06/2019.
 //  Copyright © 2019 com.github.albertopeam. All rights reserved.
@@ -8,19 +8,19 @@
 
 import SwiftUI
 
-struct PodcastHeaderView : View {
-    
-    let podcast: Podcast
-    let imageLoader: ImageLoader
-    
-    init(podcast: Podcast,
-         imageLoader: ImageLoader) {
-        self.podcast = podcast
-        self.imageLoader = imageLoader
-    }
-    
-    var body: some View {
-        HStack {
+struct PodcastHeaderView: View {
+
+  let podcast: Podcast
+  let imageLoader: ImageLoader
+
+  init(podcast: Podcast,
+       imageLoader: ImageLoader) {
+    self.podcast = podcast
+    self.imageLoader = imageLoader
+  }
+
+  var body: some View {
+    HStack {
 /*            VStack {
                 Image(uiImage: imageLoader.image(for: podcast.thumbnail))
                     .frame(width: 128, height: 128)
@@ -34,19 +34,19 @@ struct PodcastHeaderView : View {
                     .font(.caption)
                     .foregroundColor(Color.red)
             }*/
-            Spacer().frame(maxWidth: 20)
-            VStack(alignment: .leading) {
-                Text(podcast.trackName)
-                    .lineLimit(nil)
-                    .font(.headline)
-                Spacer().frame(maxHeight: 10)
-                Text(podcast.description)
-                    .lineLimit(nil)
-                    .font(.caption)
-            }
-            }
-            .padding([.top])
+      Spacer().frame(maxWidth: 20)
+      VStack(alignment: .leading) {
+        Text(podcast.trackName)
+          .lineLimit(nil)
+          .font(.headline)
+        Spacer().frame(maxHeight: 10)
+        Text(podcast.description)
+          .lineLimit(nil)
+          .font(.caption)
+      }
     }
-    
+      .padding([.top])
+  }
+
 }
 

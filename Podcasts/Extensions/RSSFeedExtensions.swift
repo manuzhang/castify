@@ -1,6 +1,6 @@
 //
 //  RSSFeed+Extensions.swift
-//  Podcasts
+//  Search
 //
 //  Created by Eugene Karambirov on 26/09/2018.
 //  Copyright © 2018 Eugene Karambirov. All rights reserved.
@@ -10,21 +10,21 @@ import FeedKit
 
 extension RSSFeed {
 
-    func toEpisodes() -> [Episode] {
-        let imageUrl = iTunes?.iTunesImage?.attributes?.href
+  func toEpisodes() -> [Episode] {
+    let imageUrl = iTunes?.iTunesImage?.attributes?.href
 
-        var episodes = [Episode]()
-        items?.forEach { feedItem in
-            var episode = Episode(feedItem: feedItem)
+    var episodes = [Episode]()
+    items?.forEach { feedItem in
+      var episode = Episode(feedItem: feedItem)
 
-            if episode.imageUrl == nil {
-                episode.imageUrl = imageUrl
-            }
+      if episode.imageUrl == nil {
+        episode.imageUrl = imageUrl
+      }
 
-            episodes.append(episode)
-        }
-
-        return episodes
+      episodes.append(episode)
     }
+
+    return episodes
+  }
 
 }

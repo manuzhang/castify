@@ -11,12 +11,12 @@ import XCTest
 
 class PodcastsTests: XCTestCase {
     
-//    private var sut: Podcasts!
+//    private var sut: Search!
 //    private var publisher: PodcastPublisher!
 //
 //    override func setUp() {
 //        super.setUp()
-//        sut = Podcasts()
+//        sut = Search()
 //    }
 //
 //    override func tearDown() {

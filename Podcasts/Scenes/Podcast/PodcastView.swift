@@ -13,7 +13,7 @@ struct PodcastView: View {
   @ObservedObject var imageLoader: ImageLoader
   @ObservedObject var player: Player
 
-  var viewModel: PodcastViewModel
+  @ObservedObject var viewModel: PodcastViewModel
 
   init(podcast: Podcast,
        imageLoader: ImageLoader = ImageLoader(),
@@ -49,7 +49,7 @@ struct PodcastView: View {
       PlayerView()
     }.navigationBarTitle(Text(viewModel.podcast.trackName))
       .onAppear(perform: {
-        // TODO: fetch episodes
+        self.viewModel.fetchEpisodes {}
       })
   }
 }

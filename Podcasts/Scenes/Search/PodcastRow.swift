@@ -22,7 +22,7 @@ struct PodcastRow: View {
   var body: some View {
     HStack {
       Image(uiImage: self.imageLoader.image(
-        for: self.podcast.artworkUrl600.flatMap { URL(string: $0) }))
+        for: self.podcast.thumbnail()))
         .frame(width: 64, height: 64, alignment: .center)
         .aspectRatio(contentMode: ContentMode.fit)
         .clipShape(Circle())

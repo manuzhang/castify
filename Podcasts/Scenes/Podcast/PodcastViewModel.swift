@@ -5,7 +5,7 @@
 
 import Foundation
 
-final class PodcastViewModel {
+final class PodcastViewModel: ObservableObject {
 
   // MARK: - Private
   fileprivate let networkingService = NetworkingService()
@@ -13,7 +13,7 @@ final class PodcastViewModel {
 
   // MARK: - Properties
   let podcast: Podcast
-  var episodes = [Episode]()
+  @Published private(set) var episodes = [Episode]()
   // var dataSource: TableViewDataSource<Episode, EpisodeCell>?
 
   init(podcast: Podcast) {

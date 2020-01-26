@@ -23,6 +23,10 @@ final class Podcast: NSObject, Decodable, NSCoding, Identifiable {
     aCoder.encode(feedUrl ?? "", forKey: Keys.feedKey)
   }
 
+  func thumbnail() -> URL? {
+    artworkUrl600.flatMap { URL(string: $0) }
+  }
+
   init?(coder aDecoder: NSCoder) {
     self.trackName = aDecoder.decodeObject(forKey: Keys.trackNameKey) as? String
     self.artistName = aDecoder.decodeObject(forKey: Keys.artistNameKey) as? String

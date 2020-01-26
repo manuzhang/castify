@@ -21,31 +21,30 @@ struct PodcastHeaderView: View {
 
   var body: some View {
     HStack {
-/*            VStack {
-                Image(uiImage: imageLoader.image(for: podcast.thumbnail))
-                    .frame(width: 128, height: 128)
-                    .aspectRatio(contentMode: ContentMode.fit)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                    .shadow(radius: 4)
-                Text(podcast.language)
-                    .frame(alignment: .trailing)
-                    .lineLimit(1)
-                    .font(.caption)
-                    .foregroundColor(Color.red)
-            }*/
+      VStack {
+        Image(uiImage: imageLoader.image(for: podcast.thumbnail()))
+          .frame(width: 128, height: 128)
+          .aspectRatio(contentMode: ContentMode.fit)
+          .clipShape(Circle())
+          .overlay(Circle().stroke(Color.white, lineWidth: 2))
+          .shadow(radius: 4)
+//        Text(podcast.language)
+//          .frame(alignment: .trailing)
+//          .lineLimit(1)
+//          .font(.caption)
+//          .foregroundColor(Color.red)
+      }
       Spacer().frame(maxWidth: 20)
       VStack(alignment: .leading) {
         Text(podcast.trackName)
           .lineLimit(nil)
           .font(.headline)
-        Spacer().frame(maxHeight: 10)
-        Text(podcast.description)
-          .lineLimit(nil)
-          .font(.caption)
+        Spacer().frame(maxHeight: CGFloat(10))
+//        Text(podcast.description)
+//          .lineLimit(nil)
+//          .font(.caption)
       }
-    }
-      .padding([.top])
+    }.padding([.top])
   }
 
 }

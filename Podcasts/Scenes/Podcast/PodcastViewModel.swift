@@ -28,20 +28,23 @@ extension PodcastViewModel {
     guard let feedURL = podcast.feedUrl else { return }
     networkingService.fetchEpisodes(feedUrl: feedURL) { [weak self] episodes in
       guard let self = self else { return }
-      self.episodesDidLoad(episodes)
       DispatchQueue.main.async {
+        self.episodes = episodes
         completion()
       }
     }
   }
 
-  func saveFavorite() {
-    print("Saving info into UserDefaults")
-    var listOfPodcasts = podcastsService.savedPodcasts
-    listOfPodcasts.append(podcast)
-    let data = try! NSKeyedArchiver.archivedData(withRootObject: listOfPodcasts,
+  func subscribe() {
+    var pods = podcastsService.subscribedPodcasts
+    pods.append(podcast)
+    let data = try! NSKeyedArchiver.archivedData(withRootObject: pods,
       requiringSecureCoding: false)
-    UserDefaults.standard.set(data, forKey: UserDefaults.favoritedPodcastKey)
+    UserDefaults.standard.set(data, forKey: UserDefaults.subscribedPodcastsKey)
+  }
+
+  func unsubscribe() {
+    podcastsService.deletePodcast(podcast)
   }
 
   func download(_ episode: Episode) {
@@ -55,7 +58,7 @@ extension PodcastViewModel {
   }
 
   func checkIfPodcastHasFavorited() -> Bool {
-    let savedPodcasts = podcastsService.savedPodcasts
+    let savedPodcasts = podcastsService.subscribedPodcasts
     let hasFavorited = savedPodcasts
       .firstIndex(where: { $0.trackName  == self.podcast.trackName &&
       $0.artistName == self.podcast.artistName }) != nil

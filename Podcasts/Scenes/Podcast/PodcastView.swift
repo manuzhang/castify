@@ -12,7 +12,6 @@ struct PodcastView: View {
 
   @ObservedObject var imageLoader: ImageLoader
   @ObservedObject var player: Player
-
   @ObservedObject var viewModel: PodcastViewModel
 
   init(podcast: Podcast,
@@ -27,18 +26,30 @@ struct PodcastView: View {
     VStack {
       List {
         PodcastHeaderView(podcast: viewModel.podcast, imageLoader: imageLoader)
+        Button(
+          action: {
+            self.viewModel.subscribe()
+          },
+          label: { Text("Subscribe") }
+        )
+        Button(
+          action: {
+            self.viewModel.unsubscribe()
+          },
+          label: { Text("Unsubscribe") }
+        )
         if viewModel.episodes.isEmpty {
           Spinner()
         } else {
-          HStack {
-            Spacer()
-            Button(action: {
-              self.player.setup(for: self.viewModel.episodes)
-            }, label: {
-              Text("Prepare to play")
-            }).foregroundColor(.green)
-            Spacer()
-          }
+//          HStack {
+//            Spacer()
+//            Button(action: {
+//              self.player.setup(for: self.viewModel.episodes)
+//            }, label: {
+//              Text("Prepare to play")
+//            }).foregroundColor(.green)
+//            Spacer()
+//          }
           ForEach(viewModel.episodes, id: \.self) { episode in
             NavigationLink(destination: EpisodeView(episode: episode)) {
               EpisodeRow(episode: episode)

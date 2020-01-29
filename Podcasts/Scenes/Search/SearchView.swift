@@ -17,6 +17,7 @@ struct SearchView: View {
             })
           }
         }
+        PlayerView()
       }.navigationBarTitle(Text("Search"))
     }
   }

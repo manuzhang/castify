@@ -10,6 +10,7 @@ import Foundation
 
 final class Podcast: NSObject, Decodable, NSCoding, Identifiable {
 
+  var trackId: Int?
   var trackName: String?
   var artistName: String?
   var artworkUrl600: String?
@@ -17,6 +18,7 @@ final class Podcast: NSObject, Decodable, NSCoding, Identifiable {
   var feedUrl: String?
 
   func encode(with aCoder: NSCoder) {
+    aCoder.encode(trackId ?? 0, forKey: Keys.trackIdKey)
     aCoder.encode(trackName ?? "", forKey: Keys.trackNameKey)
     aCoder.encode(artistName ?? "", forKey: Keys.artistNameKey)
     aCoder.encode(artworkUrl600 ?? "", forKey: Keys.artworkKey)
@@ -28,16 +30,38 @@ final class Podcast: NSObject, Decodable, NSCoding, Identifiable {
   }
 
   init?(coder aDecoder: NSCoder) {
+    self.trackId = aDecoder.decodeObject(forKey: Keys.trackIdKey) as? Int
     self.trackName = aDecoder.decodeObject(forKey: Keys.trackNameKey) as? String
     self.artistName = aDecoder.decodeObject(forKey: Keys.artistNameKey) as? String
     self.artworkUrl600 = aDecoder.decodeObject(forKey: Keys.artworkKey) as? String
     self.feedUrl = aDecoder.decodeObject(forKey: Keys.feedKey) as? String
+  }
+
+  override var hash: Int {
+    trackId?.hashValue ?? UUID().hashValue
+  }
+
+  override func isEqual(_ object: Any?) -> Bool {
+    guard let object = object as? Podcast else {
+      return false
+    }
+    if self === object {
+      return true
+    }
+    if type(of: self) != type(of: object) {
+      return false
+    }
+    if self.trackId != object.trackId {
+      return false
+    }
+    return true
   }
 }
 
 private extension Podcast {
 
   enum Keys {
+    static let trackIdKey = "trackIdKey"
     static let trackNameKey = "trackNameKey"
     static let artistNameKey = "artistNameKey"
     static let artworkKey = "artworkKey"

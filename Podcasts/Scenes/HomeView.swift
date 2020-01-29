@@ -12,13 +12,15 @@ struct HomeView: View {
 
   var body: some View {
     TabView {
+      PodcastsView()
+        .tabItem {
+          Text("Podcasts")
+        }.tag(0)
       SearchView()
         .tabItem {
           Text("Search")
-        }
-        .tag(0)
-    }
-      .font(.headline)
+        }.tag(1)
+    }.font(.headline)
   }
 }
 

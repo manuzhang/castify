@@ -13,12 +13,6 @@ struct PodcastHeaderView: View {
   let podcast: Podcast
   let imageLoader: ImageLoader
 
-  init(podcast: Podcast,
-       imageLoader: ImageLoader) {
-    self.podcast = podcast
-    self.imageLoader = imageLoader
-  }
-
   var body: some View {
     HStack {
       VStack {
@@ -28,6 +22,7 @@ struct PodcastHeaderView: View {
           .clipShape(Circle())
           .overlay(Circle().stroke(Color.white, lineWidth: 2))
           .shadow(radius: 4)
+
 //        Text(podcast.language)
 //          .frame(alignment: .trailing)
 //          .lineLimit(1)

@@ -11,7 +11,7 @@ import Foundation
 final class PodcastsService {
 
   // MARK: - Properties
-  var savedPodcasts: [Podcast] {
+  var subscribedPodcasts: [Podcast] {
     fetchSavedPodcasts()
   }
 
@@ -25,13 +25,15 @@ final class PodcastsService {
 extension PodcastsService {
 
   func deletePodcast(_ podcast: Podcast) {
-    let podcasts = savedPodcasts
-    let filteredPodcasts = podcasts.filter { podcast -> Bool in
-      return podcast.trackName != podcast.trackName && podcast.artistName != podcast.artistName
+    let podcasts = subscribedPodcasts
+    let filteredPodcasts = podcasts.filter { pod -> Bool in
+      pod.id != podcast.id &&
+        pod.trackName != podcast.trackName &&
+        pod.artistName != podcast.artistName
     }
 
     let data = try! NSKeyedArchiver.archivedData(withRootObject: filteredPodcasts, requiringSecureCoding: false)
-    UserDefaults.standard.set(data, forKey: UserDefaults.favoritedPodcastKey)
+    UserDefaults.standard.set(data, forKey: UserDefaults.subscribedPodcastsKey)
   }
 
   func downloadEpisode(_ episode: Episode) {
@@ -65,11 +67,11 @@ extension PodcastsService {
 extension PodcastsService {
 
   fileprivate func fetchSavedPodcasts() -> [Podcast] {
-    guard let savedPodcastsData = UserDefaults.standard.data(forKey: UserDefaults.favoritedPodcastKey) else {
+    guard let data = UserDefaults.standard.data(forKey: UserDefaults.subscribedPodcastsKey) else {
       return []
     }
     guard let savedPodcasts = try! NSKeyedUnarchiver
-      .unarchivedObject(ofClasses: [Podcast.self], from: savedPodcastsData) as? [Podcast] else {
+      .unarchiveTopLevelObjectWithData(data) as? [Podcast] else {
       return []
     }
     return savedPodcasts

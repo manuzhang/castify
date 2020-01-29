@@ -10,7 +10,7 @@ import Foundation
 
 extension UserDefaults {
 
-  static let favoritedPodcastKey = "favoritedPodcastKey"
+  static let subscribedPodcastsKey = "subscribedPodcastsKey"
   static let downloadedEpisodesKey = "downloadEpisodesKey"
 
 }

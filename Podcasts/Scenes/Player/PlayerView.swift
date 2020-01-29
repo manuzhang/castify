@@ -19,13 +19,13 @@ struct PlayerView: View {
 
   var body: some View {
     VStack {
-      if player.hasEpisodes {
+      // if player.hasEpisodes {
         ProgressView(progress: player.progress)
         HStack {
           Button(action: {
             self.player.previous()
           }) {
-            return Image(systemName: "backward.end")
+            Image(systemName: "backward.end")
           }.imageScale(.large)
           Button(action: {
             switch self.player.state {
@@ -51,13 +51,13 @@ struct PlayerView: View {
           Button(action: {
             self.player.next()
           }) {
-            return Image(systemName: "forward.end")
+            Image(systemName: "forward.end")
           }.imageScale(.large)
           Text(player.current?.title)
           Spacer()
         }.padding()
       }
-    }
+    // }
   }
 
 }

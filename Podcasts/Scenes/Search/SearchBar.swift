@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SearchBar: View {
   @Binding var text: String
-  @State var action: () -> Void
+  let action: () -> Void
 
   var body: some View {
     ZStack {

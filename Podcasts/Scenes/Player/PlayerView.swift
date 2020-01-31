@@ -45,7 +45,7 @@ struct PlayerView: View {
             case .playing:
               return Image(systemName: "pause")
             case .finish:
-              return Image(systemName: "pause")
+              return Image(systemName: "play")
             }
           }.imageScale(.large)
           Button(action: {

@@ -14,12 +14,14 @@ struct HomeView: View {
     TabView {
       PodcastsView()
         .tabItem {
+          Image(systemName: "list.dash")
           Text("Podcasts")
         }.tag(0)
       SearchView()
         .tabItem {
+          Image(systemName: "magnifyingglass")
           Text("Search")
-        }.tag(1)
+        }.imageScale(.large).tag(1)
     }.font(.headline)
   }
 }

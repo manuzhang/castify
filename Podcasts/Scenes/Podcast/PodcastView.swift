@@ -41,15 +41,6 @@ struct PodcastView: View {
         if viewModel.episodes.isEmpty {
           Spinner()
         } else {
-//          HStack {
-//            Spacer()
-//            Button(action: {
-//              self.player.setup(for: self.viewModel.episodes)
-//            }, label: {
-//              Text("Prepare to play")
-//            }).foregroundColor(.green)
-//            Spacer()
-//          }
           ForEach(viewModel.episodes, id: \.self) { episode in
             NavigationLink(destination: EpisodeView(episode: episode)) {
               EpisodeRow(episode: episode)
@@ -60,7 +51,9 @@ struct PodcastView: View {
       PlayerView()
     }.navigationBarTitle(Text(viewModel.podcast.trackName))
       .onAppear(perform: {
-        self.viewModel.fetchEpisodes {}
+        self.viewModel.fetchEpisodes {
+          self.player.setup(for: self.viewModel.episodes)
+        }
       })
   }
 }

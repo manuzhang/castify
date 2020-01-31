@@ -76,36 +76,49 @@ extension NetworkingService {
 
   typealias EpisodeDownloadComplete = (fileUrl: String, episodeTitle: String)
 
-  func downloadEpisode(_ episode: Episode) {
-    print("Downloading episode using Alamofire at stream url:", episode.streamUrl)
+  func downloadEpisode(_ episode: Episode, _ handler: @escaping (Progress) -> Void) {
+    print("Downloading episode at stream url:", episode.streamUrl)
 
-    let downloadRequest = DownloadRequest.suggestedDownloadDestination()
+    let destination = DownloadRequest.suggestedDownloadDestination()
 
-    AF.download(episode.streamUrl, to: downloadRequest).downloadProgress { progress in
-      NotificationCenter.default.post(name: NSNotification.Name("downloadProgress"), object: nil,
-        userInfo: ["title": episode.title, "progress": progress.fractionCompleted])
-    }.response { response in
-      print(response.fileURL?.absoluteString ?? "")
+//    AF.download(episode.streamUrl, to: downloadRequest).downloadProgress { progress in
+//      NotificationCenter.default.post(name: NSNotification.Name("downloadProgress"), object: nil,
+//        userInfo: ["title": episode.title, "progress": progress.fractionCompleted])
+//    }
 
-      let episodeDownloadComplete = EpisodeDownloadComplete(fileUrl: response.fileURL?.absoluteString ?? "",
-        episode.title)
-      NotificationCenter.default.post(name: .downloadComplete, object: episodeDownloadComplete, userInfo: nil)
 
-      var downloadedEpisodes = self.podcastsService?.downloadedEpisodes
-      guard let index = downloadedEpisodes?.firstIndex(where: {
-        $0.title == episode.title
-          && $0.author == episode.author
-      }) else {
-        return
+    AF.download(episode.streamUrl, to: destination).downloadProgress { progress in
+        handler(progress)
       }
-      downloadedEpisodes?[index].fileUrl = response.fileURL?.absoluteString ?? ""
+      .response { response in
+        debugPrint(response)
+        if response.error == nil, let path = response.fileURL?.absoluteString {
+          print("Downloaded episode to: ", path)
+          let episodeDownloadComplete = EpisodeDownloadComplete(fileUrl: path,
+            episode.title)
+          NotificationCenter.default.post(name: .downloadComplete, object: episodeDownloadComplete, userInfo: nil)
 
-      do {
-        let data = try JSONEncoder().encode(downloadedEpisodes)
-        UserDefaults.standard.set(data, forKey: UserDefaults.downloadedEpisodesKey)
-      } catch let downloadingError {
-        print("Failed to encode downloaded episodes with file url update:", downloadingError)
+          var downloadedEpisodes = self.podcastsService?.downloadedEpisodes
+          var epi = episode
+          epi.fileUrl = path
+          downloadedEpisodes?.append(epi)
+//      guard let index = downloadedEpisodes?.firstIndex(where: {
+//        $0.title == episode.title
+//          && $0.author == episode.author
+//      }) else {
+//        return
+//      }
+//      downloadedEpisodes?[index].fileUrl = response.fileURL?.absoluteString ?? ""
+
+          do {
+            let data = try JSONEncoder().encode(downloadedEpisodes)
+            UserDefaults.standard.set(data, forKey: UserDefaults.downloadedEpisodesKey)
+          } catch let downloadingError {
+            print("Failed to encode downloaded episodes with file url update:", downloadingError)
+          }
+        } else {
+          print("Failed to download episode from url: ", episode.streamUrl)
+        }
       }
-    }
   }
 }

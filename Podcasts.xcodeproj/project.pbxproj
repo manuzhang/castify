@@ -14,6 +14,7 @@
 		3C97138F52C25CAD48A3B646 /* SearchResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C971C07C76FE92739F74FFD /* SearchResult.swift */; };
 		3C9715633CEBE0B61341C521 /* Services in Resources */ = {isa = PBXBuildFile; fileRef = 6990964023A7BECA003CD84B /* Services */; };
 		3C9715F4113E37949967C9CB /* UserDefaultsExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C97154BC40270F17901277D /* UserDefaultsExtensions.swift */; };
+		3C9716B090C9A66F42F128DB /* EpisodeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9714AA98482F1A0C36EBB6 /* EpisodeViewModel.swift */; };
 		3C9716EF07E4293B0E40E8CA /* Date+Formatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9711D8F371E272DD05A4FE /* Date+Formatter.swift */; };
 		3C9717CA1F315DA8237F8BD1 /* AppDelegate+Container.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C971EC568364DC690C196CB /* AppDelegate+Container.swift */; };
 		3C9718098083BD38BFBE2669 /* PodcastViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9713D3BA9B633D281B112C /* PodcastViewModel.swift */; };
@@ -28,6 +29,7 @@
 		3C971DFA67D427BBE6B90E86 /* Int+Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9710F865D82DCA93409283 /* Int+Timestamp.swift */; };
 		3C971E5F08C879227D844941 /* NetworkingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9711354485994B0C262693 /* NetworkingService.swift */; };
 		3C971E6FF60BF9C16FE2BE4B /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C97123F8DCCC8DCFD818F6B /* ImageLoader.swift */; };
+		3C971F40C7CF5BF38F7919B8 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C97127A1EE265257B5068FD /* Player.swift */; };
 		3C971F4F1DA0E43161B5C7D5 /* PodcastsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9713C91D2773D59095BCA4 /* PodcastsViewModel.swift */; };
 		69788C8523A7E26800D3B585 /* Moya.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 69788C8423A7E26800D3B585 /* Moya.framework */; };
 		69788C8723A84DFC00D3B585 /* FeedKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 69788C8623A84DFC00D3B585 /* FeedKit.framework */; };
@@ -45,7 +47,6 @@
 		C3968F2222AA416E004CB76C /* PodcastsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3968F2122AA416E004CB76C /* PodcastsTests.swift */; };
 		C3C2441822AE84440021050F /* Kingfisher.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3D56D0422AE81C600B0A948 /* Kingfisher.framework */; };
 		C3D56D0222AE7C7000B0A948 /* PodcastHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D56D0122AE7C7000B0A948 /* PodcastHeaderView.swift */; };
-		C3E1087D22AFFE0C00F05D61 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E1087C22AFFE0C00F05D61 /* Player.swift */; };
 		C3E3AFC722B8BF750038821F /* ProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E3AFC622B8BF750038821F /* ProgressView.swift */; };
 		C3F51E7A22AF8A8C00279F4C /* Spinner.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F51E7922AF8A8C00279F4C /* Spinner.swift */; };
 		C3F5D70122B04FDC00C25132 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F5D70022B04FDC00C25132 /* PlayerView.swift */; };
@@ -84,11 +85,13 @@
 		3C9711D8F371E272DD05A4FE /* Date+Formatter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Date+Formatter.swift"; path = "Extensions/Date+Formatter.swift"; sourceTree = "<group>"; };
 		3C97123F8DCCC8DCFD818F6B /* ImageLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ImageLoader.swift; path = Extensions/ImageLoader.swift; sourceTree = "<group>"; };
 		3C9712724BA85E2C41B03698 /* RSSFeedExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = RSSFeedExtensions.swift; path = Extensions/RSSFeedExtensions.swift; sourceTree = "<group>"; };
+		3C97127A1EE265257B5068FD /* Player.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
 		3C9712A909CB5AB96DD31ADE /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		3C97133A4ABCCD942B0068E4 /* KingfisherSwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = KingfisherSwiftUI.framework; path = "/Users/doriadong/git/podcasts-swift-ui/Carthage/Build/iOS/KingfisherSwiftUI.framework"; sourceTree = "<absolute>"; };
 		3C9713AFE1E123C88B94492A /* PodcastsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = PodcastsView.swift; path = Podcasts/PodcastsView.swift; sourceTree = "<group>"; };
 		3C9713C91D2773D59095BCA4 /* PodcastsViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = PodcastsViewModel.swift; path = Podcasts/PodcastsViewModel.swift; sourceTree = "<group>"; };
 		3C9713D3BA9B633D281B112C /* PodcastViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PodcastViewModel.swift; sourceTree = "<group>"; };
+		3C9714AA98482F1A0C36EBB6 /* EpisodeViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EpisodeViewModel.swift; sourceTree = "<group>"; };
 		3C97154BC40270F17901277D /* UserDefaultsExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = UserDefaultsExtensions.swift; path = Extensions/UserDefaultsExtensions.swift; sourceTree = "<group>"; };
 		3C971723CE2D21838CA28A17 /* PodcastsService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = PodcastsService.swift; path = Services/PodcastsService.swift; sourceTree = "<group>"; };
 		3C97180A79CD7ABB2D7B4F4F /* NotificationExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = NotificationExtension.swift; path = Extensions/NotificationExtension.swift; sourceTree = "<group>"; };
@@ -123,7 +126,6 @@
 		C3968F2322AA416E004CB76C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C3D56D0122AE7C7000B0A948 /* PodcastHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastHeaderView.swift; sourceTree = "<group>"; };
 		C3D56D0422AE81C600B0A948 /* Kingfisher.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kingfisher.framework; path = Carthage/Build/iOS/Kingfisher.framework; sourceTree = "<group>"; };
-		C3E1087C22AFFE0C00F05D61 /* Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
 		C3E3AFC622B8BF750038821F /* ProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressView.swift; sourceTree = "<group>"; };
 		C3F51E7922AF8A8C00279F4C /* Spinner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spinner.swift; sourceTree = "<group>"; };
 		C3F5D70022B04FDC00C25132 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
@@ -177,6 +179,7 @@
 			isa = PBXGroup;
 			children = (
 				C307F30A22AD01A1001579EA /* EpisodeView.swift */,
+				3C9714AA98482F1A0C36EBB6 /* EpisodeViewModel.swift */,
 			);
 			path = Episode;
 			sourceTree = "<group>";
@@ -282,7 +285,6 @@
 		C3E1087B22AFFDFE00F05D61 /* Player */ = {
 			isa = PBXGroup;
 			children = (
-				C3E1087C22AFFE0C00F05D61 /* Player.swift */,
 			);
 			path = Player;
 			sourceTree = "<group>";
@@ -300,6 +302,7 @@
 			isa = PBXGroup;
 			children = (
 				C3F5D70022B04FDC00C25132 /* PlayerView.swift */,
+				3C97127A1EE265257B5068FD /* Player.swift */,
 			);
 			path = Player;
 			sourceTree = "<group>";
@@ -478,7 +481,6 @@
 				C307F2DA22ABEFEA001579EA /* HomeView.swift in Sources */,
 				C3968F0B22AA416C004CB76C /* AppDelegate.swift in Sources */,
 				C3968F0D22AA416C004CB76C /* SceneDelegate.swift in Sources */,
-				C3E1087D22AFFE0C00F05D61 /* Player.swift in Sources */,
 				C307F30B22AD01A1001579EA /* EpisodeView.swift in Sources */,
 				C3F5D70122B04FDC00C25132 /* PlayerView.swift in Sources */,
 				C3D56D0222AE7C7000B0A948 /* PodcastHeaderView.swift in Sources */,
@@ -511,6 +513,8 @@
 				3C9718098083BD38BFBE2669 /* PodcastViewModel.swift in Sources */,
 				3C971C16F4995A198278A95E /* PodcastsView.swift in Sources */,
 				3C971F4F1DA0E43161B5C7D5 /* PodcastsViewModel.swift in Sources */,
+				3C9716B090C9A66F42F128DB /* EpisodeViewModel.swift in Sources */,
+				3C971F40C7CF5BF38F7919B8 /* Player.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -32,32 +32,38 @@ extension PodcastsService {
         pod.artistName != podcast.artistName
     }
 
-    let data = try! NSKeyedArchiver.archivedData(withRootObject: filteredPodcasts, requiringSecureCoding: false)
+    let data = try! NSKeyedArchiver.archivedData(withRootObject: filteredPodcasts,
+      requiringSecureCoding: false)
     UserDefaults.standard.set(data, forKey: UserDefaults.subscribedPodcastsKey)
   }
 
-  func downloadEpisode(_ episode: Episode) {
-    do {
-      var episodes = downloadedEpisodes
-      episodes.insert(episode, at: 0)
-      let data = try JSONEncoder().encode(episodes)
-      UserDefaults.standard.set(data, forKey: UserDefaults.downloadedEpisodesKey)
-    } catch let encodeError {
-      print("Failed to encode episode:", encodeError)
-    }
+  func episodeDownloaded(_ episode: Episode) -> Bool {
+    let episodes = downloadedEpisodes
+    return episodes.contains(episode)
+    // return episodes.contains { $0.title == episode.title && $0.author == episode.author }
   }
 
   func deleteEpisode(_ episode: Episode) {
-    let savedEpisodes = downloadedEpisodes
-    let filteredEpisodes = savedEpisodes.filter { filteredEpisode -> Bool in
-      filteredEpisode.title != episode.title
+    let fileManager = FileManager()
+    if let path = episode.fileUrl, fileManager.fileExists(atPath: path) {
+      do {
+        try fileManager.removeItem(atPath: path)
+      } catch {
+        print("Failed to delete episode file: " + path)
+      }
     }
+
+    let savedEpisodes = downloadedEpisodes
+    let filteredEpisodes = savedEpisodes.filter { epi -> Bool in
+      epi != episode
+    }
+
 
     do {
       let data = try JSONEncoder().encode(filteredEpisodes)
       UserDefaults.standard.set(data, forKey: UserDefaults.downloadedEpisodesKey)
     } catch let encodeError {
-      print("Failed to encode episode:", encodeError)
+      print("Failed to encode episode: ", encodeError)
     }
   }
 
@@ -78,12 +84,12 @@ extension PodcastsService {
   }
 
   fileprivate func fetchDownloadedEpisodes() -> [Episode] {
-    guard let episodesData = UserDefaults.value(forKey: UserDefaults.downloadedEpisodesKey) as? Data else {
+    guard let data = UserDefaults.standard.data(forKey: UserDefaults.downloadedEpisodesKey) else {
       return []
     }
 
     do {
-      return try JSONDecoder().decode([Episode].self, from: episodesData)
+      return try JSONDecoder().decode([Episode].self, from: data)
     } catch let decodeError {
       print("Failed to decode:", decodeError)
       return []

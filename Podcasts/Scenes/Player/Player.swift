@@ -21,12 +21,9 @@ class Player: ObservableObject {
     case finish(episodes: [Episode])
   }
 
-  var didChange: CurrentValueSubject<State, Never> = CurrentValueSubject(.empty)
-  var state: State = .empty {
-    didSet {
-      didChange.send(state)
-    }
-  }
+  @Published var state: State = .empty
+  @Published var progress: Float = 0
+
   var current: Episode?
   private var episodes: [Episode] = []
   private let avPlayer: AVPlayer
@@ -40,9 +37,11 @@ class Player: ObservableObject {
     self.avPlayer = avPlayer
     self.notificationCenter = notificationCenter
     self.systemPlayer = systemPlayer
-    self.notificationCenter.addObserver(self, selector: #selector(self.didPlayToEnd), name: .AVPlayerItemDidPlayToEndTime, object: nil)
+    self.notificationCenter.addObserver(self, selector: #selector(self.didPlayToEnd),
+      name: .AVPlayerItemDidPlayToEndTime, object: nil)
     let interval = CMTime(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
-    self.avPlayer.addPeriodicTimeObserver(forInterval: interval, queue: DispatchQueue.main, using: didUpdatedPlayer)
+    self.avPlayer.addPeriodicTimeObserver(forInterval: interval, queue: DispatchQueue.main,
+      using: didUpdatedPlayer)
     try? avSession.setCategory(AVAudioSession.Category.playback,
       mode: AVAudioSession.Mode.default,
       options: [.allowBluetooth, .allowAirPlay, .defaultToSpeaker])
@@ -99,7 +98,7 @@ class Player: ObservableObject {
     self.playNow(next: nextEpisode)
   }
 
-  var progress: Float {
+  func getProgress(time: CMTime) -> Float {
     guard let playerDuration = avPlayer.currentItem?.duration else {
       return 0
     }
@@ -107,7 +106,7 @@ class Player: ObservableObject {
     guard !totalTime.isNaN else {
       return 0
     }
-    let currentTime = Float(CMTimeGetSeconds(avPlayer.currentTime()))
+    let currentTime = Float(CMTimeGetSeconds(time))
     return currentTime / totalTime
   }
 
@@ -134,6 +133,7 @@ class Player: ObservableObject {
     guard let episode = current else {
       return
     }
+    progress = getProgress(time: time)
     state = .playing(episode: episode, progress: progress)
   }
 
@@ -176,7 +176,8 @@ class Player: ObservableObject {
     }
     current = next
     avPlayer.play()
-    notificationCenter.addObserver(self, selector: #selector(self.didArriveInterruption), name: AVAudioSession.interruptionNotification, object: nil)
+    notificationCenter.addObserver(self, selector: #selector(self.didArriveInterruption),
+      name: AVAudioSession.interruptionNotification, object: nil)
     notifySystemPlayer(episode: next)
     state = .playing(episode: next, progress: progress)
   }

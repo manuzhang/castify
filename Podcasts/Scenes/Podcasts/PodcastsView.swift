@@ -11,17 +11,20 @@ struct PodcastsView: View {
 
   var body: some View {
     NavigationView {
-      List {
-        ForEach(podcastsViewModel.podcasts, id: \.self) { podcast in
-          NavigationLink(destination: PodcastView(podcast: podcast), label: {
-            PodcastRow(podcast: podcast)
-          })
+      VStack {
+        List {
+          ForEach(podcastsViewModel.podcasts, id: \.self) { podcast in
+            NavigationLink(destination: PodcastView(podcast: podcast), label: {
+              PodcastRow(podcast: podcast)
+            })
+          }
         }
-      }
-      PlayerView()
-    }.navigationBarTitle(Text("Podcasts"))
-      .onAppear(perform: {
-        self.podcastsViewModel.updatePodcasts()
-      })
+
+        PlayerView()
+      }.navigationBarTitle(Text("Podcasts"))
+        .onAppear(perform: {
+          self.podcastsViewModel.updatePodcasts()
+        })
+    }
   }
 }

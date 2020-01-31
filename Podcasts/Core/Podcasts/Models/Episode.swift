@@ -31,4 +31,18 @@ struct Episode: Codable, Equatable, Hashable {
     self.imageUrl = feedItem.iTunes?.iTunesImage?.attributes?.href
   }
 
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(title)
+    hasher.combine(author)
+  }
+
+  static func ==(lhs: Episode, rhs: Episode) -> Bool {
+    if lhs.title != rhs.title {
+      return false
+    }
+    if lhs.author != rhs.author {
+      return false
+    }
+    return true
+  }
 }

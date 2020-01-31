@@ -11,6 +11,6 @@ import Foundation
 extension UserDefaults {
 
   static let subscribedPodcastsKey = "subscribedPodcastsKey"
-  static let downloadedEpisodesKey = "downloadEpisodesKey"
+  static let downloadedEpisodesKey = "downloadedEpisodesKey"
 
 }

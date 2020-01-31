@@ -11,7 +11,7 @@ struct SearchView: View {
         }
 
         List {
-          ForEach(viewModel.podcasts, id: \.id) { podcast in
+          ForEach(viewModel.podcasts, id: \.self) { podcast in
             NavigationLink(destination: PodcastView(podcast: podcast), label: {
               PodcastRow(podcast: podcast)
             })

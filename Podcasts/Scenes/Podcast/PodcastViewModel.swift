@@ -47,12 +47,6 @@ extension PodcastViewModel {
     podcastsService.deletePodcast(podcast)
   }
 
-  func download(_ episode: Episode) {
-    print("Downloading episode into UserDefaults")
-    podcastsService.downloadEpisode(episode)
-    networkingService.downloadEpisode(episode)
-  }
-
   func episode(for indexPath: IndexPath) -> Episode {
     episodes[indexPath.row]
   }

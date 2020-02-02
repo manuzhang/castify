@@ -29,12 +29,21 @@
         }
       },
       {
+        "package": "FeedKit",
+        "repositoryURL": "https://github.com/nmdias/FeedKit",
+        "state": {
+          "branch": null,
+          "revision": "a74fcfbfb2dc54f1f8fa3c6848ae1efe697e0ebf",
+          "version": "9.0.0"
+        }
+      },
+      {
         "package": "Kingfisher",
         "repositoryURL": "https://github.com/onevcat/Kingfisher.git",
         "state": {
           "branch": null,
-          "revision": "2f9d171f17869768f6dbec1d039b851e2503af35",
-          "version": "5.12.0"
+          "revision": "44bfa76787a0f07e4d5ae3304e9d4f631fd519bd",
+          "version": "5.13.0"
         }
       },
       {
@@ -51,8 +60,8 @@
         "repositoryURL": "https://github.com/Quick/Nimble.git",
         "state": {
           "branch": null,
-          "revision": "6abeb3f5c03beba2b9e4dbe20886e773b5b629b6",
-          "version": "8.0.4"
+          "revision": "b02b00b30b6353632aa4a5fb6124f8147f7140c0",
+          "version": "8.0.5"
         }
       },
       {

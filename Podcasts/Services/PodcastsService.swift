@@ -40,7 +40,6 @@ extension PodcastsService {
   func episodeDownloaded(_ episode: Episode) -> Bool {
     let episodes = downloadedEpisodes
     return episodes.contains(episode)
-    // return episodes.contains { $0.title == episode.title && $0.author == episode.author }
   }
 
   func deleteEpisode(_ episode: Episode) {

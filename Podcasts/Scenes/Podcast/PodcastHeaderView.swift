@@ -6,17 +6,17 @@
 //  Copyright © 2019 com.github.albertopeam. All rights reserved.
 //
 
+import KingfisherSwiftUI
 import SwiftUI
 
 struct PodcastHeaderView: View {
 
   let podcast: Podcast
-  let imageLoader: ImageLoader
 
   var body: some View {
     HStack {
       VStack {
-        Image(uiImage: imageLoader.image(for: podcast.thumbnail()))
+        KFImage(podcast.thumbnail())
           .frame(width: 128, height: 128)
           .aspectRatio(contentMode: ContentMode.fit)
           .clipShape(Circle())

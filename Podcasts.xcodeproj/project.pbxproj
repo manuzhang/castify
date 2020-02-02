@@ -28,9 +28,9 @@
 		3C971CFBFDD88DB73AADF250 /* ImagesLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C971ED7EDA852540768C440 /* ImagesLoader.swift */; };
 		3C971DFA67D427BBE6B90E86 /* Int+Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9710F865D82DCA93409283 /* Int+Timestamp.swift */; };
 		3C971E5F08C879227D844941 /* NetworkingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9711354485994B0C262693 /* NetworkingService.swift */; };
-		3C971E6FF60BF9C16FE2BE4B /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C97123F8DCCC8DCFD818F6B /* ImageLoader.swift */; };
 		3C971F40C7CF5BF38F7919B8 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C97127A1EE265257B5068FD /* Player.swift */; };
 		3C971F4F1DA0E43161B5C7D5 /* PodcastsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9713C91D2773D59095BCA4 /* PodcastsViewModel.swift */; };
+		696A1B8923E7242C00D24E0B /* KingfisherSwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C97133A4ABCCD942B0068E4 /* KingfisherSwiftUI.framework */; };
 		69788C8523A7E26800D3B585 /* Moya.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 69788C8423A7E26800D3B585 /* Moya.framework */; };
 		69788C8723A84DFC00D3B585 /* FeedKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 69788C8623A84DFC00D3B585 /* FeedKit.framework */; };
 		69897C9623B2DA6A0017C53A /* Alamofire.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 69897C9423B2DA690017C53A /* Alamofire.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -83,7 +83,6 @@
 		3C9710F865D82DCA93409283 /* Int+Timestamp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Int+Timestamp.swift"; path = "Extensions/Int+Timestamp.swift"; sourceTree = "<group>"; };
 		3C9711354485994B0C262693 /* NetworkingService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = NetworkingService.swift; path = Services/Networking/NetworkingService.swift; sourceTree = "<group>"; };
 		3C9711D8F371E272DD05A4FE /* Date+Formatter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Date+Formatter.swift"; path = "Extensions/Date+Formatter.swift"; sourceTree = "<group>"; };
-		3C97123F8DCCC8DCFD818F6B /* ImageLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ImageLoader.swift; path = Extensions/ImageLoader.swift; sourceTree = "<group>"; };
 		3C9712724BA85E2C41B03698 /* RSSFeedExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = RSSFeedExtensions.swift; path = Extensions/RSSFeedExtensions.swift; sourceTree = "<group>"; };
 		3C97127A1EE265257B5068FD /* Player.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
 		3C9712A909CB5AB96DD31ADE /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -138,6 +137,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				696A1B8923E7242C00D24E0B /* KingfisherSwiftUI.framework in Frameworks */,
 				69788C8723A84DFC00D3B585 /* FeedKit.framework in Frameworks */,
 				69788C8523A7E26800D3B585 /* Moya.framework in Frameworks */,
 				C3C2441822AE84440021050F /* Kingfisher.framework in Frameworks */,
@@ -231,7 +231,6 @@
 				3C97154BC40270F17901277D /* UserDefaultsExtensions.swift */,
 				3C9718D165CF4269255FAB8B /* Container.swift */,
 				3C971ED7EDA852540768C440 /* ImagesLoader.swift */,
-				3C97123F8DCCC8DCFD818F6B /* ImageLoader.swift */,
 				3C971EC568364DC690C196CB /* AppDelegate+Container.swift */,
 				3C971A0440F479FCFDB7785A /* UIImage+Color.swift */,
 				3C9711D8F371E272DD05A4FE /* Date+Formatter.swift */,
@@ -396,7 +395,7 @@
 			attributes = {
 				LastSwiftUpdateCheck = 1100;
 				LastUpgradeCheck = 1120;
-				ORGANIZATIONNAME = com.github.albertopeam;
+				ORGANIZATIONNAME = io.github.manuzhang;
 				TargetAttributes = {
 					C3968F0622AA416C004CB76C = {
 						CreatedOnToolsVersion = 11.0;
@@ -458,6 +457,7 @@
 				"$(SRCROOT)/Carthage/Build/iOS/Kingfisher.framework",
 				"$(SRCROOT)/Carthage/Build/iOS/Moya.framework",
 				"$(SRCROOT)/Carthage/Build/iOS/FeedKit.framework",
+				"$(SRCROOT)/Carthage/Build/iOS/KingfisherSwiftUI.framework",
 			);
 			name = Carthage;
 			outputFileListPaths = (
@@ -466,6 +466,7 @@
 				"$(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/Kingfisher.framework",
 				"$(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/Moya.framework",
 				"$(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/FeedKit.framework",
+				"$(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/KingfisherSwiftUI.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -504,7 +505,6 @@
 				3C9715F4113E37949967C9CB /* UserDefaultsExtensions.swift in Sources */,
 				3C971BFDB82035C41331D7C2 /* Container.swift in Sources */,
 				3C971CFBFDD88DB73AADF250 /* ImagesLoader.swift in Sources */,
-				3C971E6FF60BF9C16FE2BE4B /* ImageLoader.swift in Sources */,
 				3C9717CA1F315DA8237F8BD1 /* AppDelegate+Container.swift in Sources */,
 				3C971B190E0481501A01FCAA /* UIImage+Color.swift in Sources */,
 				3C9716EF07E4293B0E40E8CA /* Date+Formatter.swift in Sources */,

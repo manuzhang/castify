@@ -13,7 +13,7 @@ final class Podcast: NSObject, Decodable, NSCoding, Identifiable {
   var trackId: Int?
   var trackName: String?
   var artistName: String?
-  var artworkUrl600: String?
+  var artworkUrl100: String?
   var trackCount: Int?
   var feedUrl: String?
 
@@ -21,19 +21,19 @@ final class Podcast: NSObject, Decodable, NSCoding, Identifiable {
     aCoder.encode(trackId ?? 0, forKey: Keys.trackIdKey)
     aCoder.encode(trackName ?? "", forKey: Keys.trackNameKey)
     aCoder.encode(artistName ?? "", forKey: Keys.artistNameKey)
-    aCoder.encode(artworkUrl600 ?? "", forKey: Keys.artworkKey)
+    aCoder.encode(artworkUrl100 ?? "", forKey: Keys.artworkKey)
     aCoder.encode(feedUrl ?? "", forKey: Keys.feedKey)
   }
 
   func thumbnail() -> URL? {
-    artworkUrl600.flatMap { URL(string: $0) }
+    artworkUrl100.flatMap { URL(string: $0) }
   }
 
   init?(coder aDecoder: NSCoder) {
     self.trackId = aDecoder.decodeObject(forKey: Keys.trackIdKey) as? Int
     self.trackName = aDecoder.decodeObject(forKey: Keys.trackNameKey) as? String
     self.artistName = aDecoder.decodeObject(forKey: Keys.artistNameKey) as? String
-    self.artworkUrl600 = aDecoder.decodeObject(forKey: Keys.artworkKey) as? String
+    self.artworkUrl100 = aDecoder.decodeObject(forKey: Keys.artworkKey) as? String
     self.feedUrl = aDecoder.decodeObject(forKey: Keys.feedKey) as? String
   }
 

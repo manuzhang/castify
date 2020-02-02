@@ -6,26 +6,24 @@
 //  Copyright © 2019 com.github.albertopeam. All rights reserved.
 //
 
+import Foundation
 import SwiftUI
 
 struct PodcastView: View {
 
-  @ObservedObject var imageLoader: ImageLoader
   @ObservedObject var player: Player
   @ObservedObject var viewModel: PodcastViewModel
 
   init(podcast: Podcast,
-       imageLoader: ImageLoader = ImageLoader(),
        player: Player = Container.player) {
     self.viewModel = PodcastViewModel(podcast: podcast)
-    self.imageLoader = imageLoader
     self.player = player
   }
 
   var body: some View {
     VStack {
       List {
-        PodcastHeaderView(podcast: viewModel.podcast, imageLoader: imageLoader)
+        PodcastHeaderView(podcast: viewModel.podcast)
         Button(
           action: {
             self.viewModel.subscribe()

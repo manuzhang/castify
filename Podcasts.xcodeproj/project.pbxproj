@@ -24,6 +24,7 @@
 		3C971BFDB82035C41331D7C2 /* Container.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9718D165CF4269255FAB8B /* Container.swift */; };
 		3C971C16F4995A198278A95E /* PodcastsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9713AFE1E123C88B94492A /* PodcastsView.swift */; };
 		3C971C30EB48EF6D2FF3A72B /* SearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C971A4345203F9DF06FAC0E /* SearchBar.swift */; };
+		3C971CC4E9D55297259682A0 /* UIApplicationExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C971B776E0ACA1725DA64BE /* UIApplicationExtension.swift */; };
 		3C971CD750412CE50AE1DB23 /* NotificationExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C97180A79CD7ABB2D7B4F4F /* NotificationExtension.swift */; };
 		3C971CFBFDD88DB73AADF250 /* ImagesLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C971ED7EDA852540768C440 /* ImagesLoader.swift */; };
 		3C971DFA67D427BBE6B90E86 /* Int+Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9710F865D82DCA93409283 /* Int+Timestamp.swift */; };
@@ -97,6 +98,7 @@
 		3C9718D165CF4269255FAB8B /* Container.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Container.swift; path = Extensions/Container.swift; sourceTree = "<group>"; };
 		3C971A0440F479FCFDB7785A /* UIImage+Color.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "UIImage+Color.swift"; path = "Extensions/UIImage+Color.swift"; sourceTree = "<group>"; };
 		3C971A4345203F9DF06FAC0E /* SearchBar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SearchBar.swift; sourceTree = "<group>"; };
+		3C971B776E0ACA1725DA64BE /* UIApplicationExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = UIApplicationExtension.swift; path = Extensions/UIApplicationExtension.swift; sourceTree = "<group>"; };
 		3C971C07C76FE92739F74FFD /* SearchResult.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SearchResult.swift; sourceTree = "<group>"; };
 		3C971C135C606EE0731474C1 /* SearchView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		3C971C6B51EE6CD665D4A403 /* iTunesAPI.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = iTunesAPI.swift; path = Services/Networking/iTunesAPI.swift; sourceTree = "<group>"; };
@@ -236,6 +238,7 @@
 				3C9711D8F371E272DD05A4FE /* Date+Formatter.swift */,
 				3C9710F865D82DCA93409283 /* Int+Timestamp.swift */,
 				3C97180A79CD7ABB2D7B4F4F /* NotificationExtension.swift */,
+				3C971B776E0ACA1725DA64BE /* UIApplicationExtension.swift */,
 			);
 			path = Podcasts;
 			sourceTree = "<group>";
@@ -515,6 +518,7 @@
 				3C971F4F1DA0E43161B5C7D5 /* PodcastsViewModel.swift in Sources */,
 				3C9716B090C9A66F42F128DB /* EpisodeViewModel.swift in Sources */,
 				3C971F40C7CF5BF38F7919B8 /* Player.swift in Sources */,
+				3C971CC4E9D55297259682A0 /* UIApplicationExtension.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

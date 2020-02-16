@@ -3,7 +3,11 @@ import Combine
 
 final class SearchViewModel: ObservableObject {
 
-  @Published var name = ""
+  @Published var name = "" {
+    didSet {
+      search()
+    }
+  }
 
   @Published private(set) var podcasts = [Podcast]()
 

@@ -2,21 +2,36 @@ import SwiftUI
 
 struct SearchBar: View {
   @Binding var text: String
-  let action: () -> Void
 
   var body: some View {
     ZStack {
-      Color.yellow
       HStack {
-        TextField("Search Podcast", text: $text)
-          .padding([.leading, .trailing], 8)
+        HStack {
+          Image(systemName: "magnifyingglass")
+
+          TextField("Search", text: $text)
+            .foregroundColor(.primary)
+
+          if !text.isEmpty {
+            Button(action: {
+              self.text = ""
+            }) {
+              Image(systemName: "xmark.circle.fill")
+            }
+          } else {
+            EmptyView()
+          }
+        }.padding([.leading, .trailing], 8)
           .frame(height: 32)
-          .background(Color.white.opacity(0.4))
+          .foregroundColor(.secondary)
+          .background(Color(.secondarySystemBackground))
           .cornerRadius(8)
         Button(
-          action: action,
-          label: { Text("Search") }
-        ).foregroundColor(Color.white)
+          action: {
+            UIApplication.shared.endEditing(true)
+          },
+          label: { Text("Cancel") }
+        ).foregroundColor(Color.yellow)
       }.padding([.leading, .trailing], 16)
     }.frame(height: 64)
   }

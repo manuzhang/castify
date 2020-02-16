@@ -6,9 +6,7 @@ struct SearchView: View {
   var body: some View {
     NavigationView {
       VStack {
-        SearchBar(text: $viewModel.name) {
-          self.viewModel.search()
-        }
+        SearchBar(text: $viewModel.name)
 
         List {
           ForEach(viewModel.podcasts, id: \.self) { podcast in
@@ -17,6 +15,9 @@ struct SearchView: View {
             })
           }
         }
+          .gesture(DragGesture().onChanged { _ in
+            UIApplication.shared.endEditing(true)
+          })
         PlayerView()
       }.navigationBarTitle(Text("Search"))
     }

@@ -39,7 +39,7 @@ extension ITunesAPI: TargetType {
   var task: Task {
     switch self {
     case .search(let term):
-      let parameters = ["term": term.URLEscapedString, "media": "podcast"]
+      let parameters = ["term": term, "media": "podcast"]
       return .requestParameters(parameters: parameters, encoding: URLEncoding.default)
     }
   }

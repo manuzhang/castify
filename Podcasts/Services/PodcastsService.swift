@@ -27,9 +27,7 @@ extension PodcastsService {
   func deletePodcast(_ podcast: Podcast) {
     let podcasts = subscribedPodcasts
     let filteredPodcasts = podcasts.filter { pod -> Bool in
-      pod.id != podcast.id &&
-        pod.trackName != podcast.trackName &&
-        pod.artistName != podcast.artistName
+      pod.trackId != podcast.trackId
     }
 
     let data = try! NSKeyedArchiver.archivedData(withRootObject: filteredPodcasts,
@@ -75,11 +73,15 @@ extension PodcastsService {
     guard let data = UserDefaults.standard.data(forKey: UserDefaults.subscribedPodcastsKey) else {
       return []
     }
-    guard let savedPodcasts = try! NSKeyedUnarchiver
-      .unarchiveTopLevelObjectWithData(data) as? [Podcast] else {
+    guard let unarchivedData = try! NSKeyedUnarchiver
+      .unarchiveTopLevelObjectWithData(data) as? Data else {
       return []
     }
-    return savedPodcasts
+    do {
+      return try PropertyListDecoder().decode([Podcast].self, from: unarchivedData)
+    } catch {
+      return []
+    }
   }
 
   fileprivate func fetchDownloadedEpisodes() -> [Episode] {

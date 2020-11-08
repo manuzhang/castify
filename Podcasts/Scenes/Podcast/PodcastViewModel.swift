@@ -24,9 +24,9 @@ final class PodcastViewModel: ObservableObject {
 extension PodcastViewModel {
 
   func fetchEpisodes(_ completion: @escaping () -> Void) {
-    print("Looking for episodes at feed url:", podcast.feedUrl ?? "")
-    guard let feedURL = podcast.feedUrl else { return }
-    networkingService.fetchEpisodes(feedUrl: feedURL) { [weak self] episodes in
+    print("Looking for episodes at feed url:", podcast.feedUrl)
+    // guard let feedURL = podcast.feedUrl else { return }
+    networkingService.fetchEpisodes(feedUrl: podcast.feedUrl) { [weak self] episodes in
       guard let self = self else { return }
       DispatchQueue.main.async {
         self.episodes = episodes
@@ -38,7 +38,8 @@ extension PodcastViewModel {
   func subscribe() {
     var pods = podcastsService.subscribedPodcasts
     pods.append(podcast)
-    let data = try! NSKeyedArchiver.archivedData(withRootObject: pods,
+    let data = try! NSKeyedArchiver.archivedData(
+      withRootObject: PropertyListEncoder().encode(pods),
       requiringSecureCoding: false)
     UserDefaults.standard.set(data, forKey: UserDefaults.subscribedPodcastsKey)
   }

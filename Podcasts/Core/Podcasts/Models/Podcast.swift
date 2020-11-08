@@ -8,64 +8,69 @@
 
 import Foundation
 
-final class Podcast: NSObject, Decodable, NSCoding, Identifiable {
 
-  var trackId: Int?
-  var trackName: String?
-  var artistName: String?
-  var artworkUrl100: String?
-  var trackCount: Int?
-  var feedUrl: String?
+struct Podcast: Codable, Hashable {
+  let trackId: Int
+  let trackName: String
+  let trackCount: Int
+  let artistName: String
+  let artworkUrl100: String
+  let feedUrl: String
 
-  func encode(with aCoder: NSCoder) {
-    aCoder.encode(trackId ?? 0, forKey: Keys.trackIdKey)
-    aCoder.encode(trackName ?? "", forKey: Keys.trackNameKey)
-    aCoder.encode(artistName ?? "", forKey: Keys.artistNameKey)
-    aCoder.encode(artworkUrl100 ?? "", forKey: Keys.artworkKey)
-    aCoder.encode(feedUrl ?? "", forKey: Keys.feedKey)
-  }
+//  func encode(to encoder: Encoder) throws {
+//    trackId.encode(to: coder)
+//    trackName.encode(to: coder)
+//    trackCount.encode(to: coder)
+//    artistName.encode(to: coder)
+//    artworkUrl100.encode(to: coder)
+//    feedUrl.encode(to: coder)
+//  }
 
   func thumbnail() -> URL? {
-    artworkUrl100.flatMap { URL(string: $0) }
+    URL(string: artworkUrl100)
   }
 
-  init?(coder aDecoder: NSCoder) {
-    self.trackId = aDecoder.decodeObject(forKey: Keys.trackIdKey) as? Int
-    self.trackName = aDecoder.decodeObject(forKey: Keys.trackNameKey) as? String
-    self.artistName = aDecoder.decodeObject(forKey: Keys.artistNameKey) as? String
-    self.artworkUrl100 = aDecoder.decodeObject(forKey: Keys.artworkKey) as? String
-    self.feedUrl = aDecoder.decodeObject(forKey: Keys.feedKey) as? String
-  }
-
-  override var hash: Int {
-    trackId?.hashValue ?? UUID().hashValue
-  }
-
-  override func isEqual(_ object: Any?) -> Bool {
-    guard let object = object as? Podcast else {
-      return false
-    }
-    if self === object {
-      return true
-    }
-    if type(of: self) != type(of: object) {
-      return false
-    }
-    if self.trackId != object.trackId {
-      return false
-    }
-    return true
-  }
+//  init?(coder aDecoder: NSCoder) {
+//    self.trackId = aDecoder.decodeObject(forKey: Keys.trackIdKey) as? Int
+//    self.trackName = aDecoder.decodeObject(forKey: Keys.trackNameKey) as? String
+//    self.trackCount = aDecoder.decodeObject(forKey: Keys.trackCountKey) as? Int
+//    self.artistName = aDecoder.decodeObject(forKey: Keys.artistNameKey) as? String
+//    self.artworkUrl100 = aDecoder.decodeObject(forKey: Keys.artworkKey) as? String
+//    self.feedUrl = aDecoder.decodeObject(forKey: Keys.feedKey) as? String
+//  }
+    
+//  private let uuid: UUID = UUID()
+//
+//  override var hash: Int {
+//    trackId?.hashValue ?? uuid.hashValue
+//  }
+//
+//  override func isEqual(_ object: Any?) -> Bool {
+//    guard let object = object as? Podcast else {
+//      return false
+//    }
+//    if self === object {
+//      return true
+//    }
+//    if type(of: self) != type(of: object) {
+//      return false
+//    }
+//    if self.hash != object.hash {
+//      return false
+//    }
+//    return true
+//  }
 }
 
-private extension Podcast {
-
-  enum Keys {
-    static let trackIdKey = "trackIdKey"
-    static let trackNameKey = "trackNameKey"
-    static let artistNameKey = "artistNameKey"
-    static let artworkKey = "artworkKey"
-    static let feedKey = "feedKey"
-  }
-
-}
+//private extension Podcast {
+//
+//  enum Keys {
+//    static let trackIdKey = "trackId"
+//    static let trackNameKey = "trackName"
+//    static let trackCountKey = "trackCount"
+//    static let artistNameKey = "artistName"
+//    static let artworkKey = "artwork"
+//    static let feedKey = "feed"
+//  }
+//
+//}

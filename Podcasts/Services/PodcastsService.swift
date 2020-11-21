@@ -1,11 +1,3 @@
-//
-//  PodcastsService.swift
-//  Search
-//
-//  Created by Eugene Karambirov on 14/03/2019.
-//  Copyright © 2019 Eugene Karambirov. All rights reserved.
-//
-
 import Foundation
 
 final class PodcastsService {
@@ -24,15 +16,30 @@ final class PodcastsService {
 // MARK: - Methods
 extension PodcastsService {
 
+  func addPodcast(_ podcast: Podcast) {
+    var podcasts = subscribedPodcasts
+    podcasts.append(podcast)
+
+    do {
+      let data = try JSONEncoder().encode(podcasts)
+      UserDefaults.standard.set(data, forKey: UserDefaults.subscribedPodcastsKey)
+    } catch let error {
+      print("Failed to add podcast: " + podcast.trackName, error)
+    }
+  }
+
   func deletePodcast(_ podcast: Podcast) {
     let podcasts = subscribedPodcasts
     let filteredPodcasts = podcasts.filter { pod -> Bool in
       pod.trackId != podcast.trackId
     }
 
-    let data = try! NSKeyedArchiver.archivedData(withRootObject: filteredPodcasts,
-      requiringSecureCoding: false)
-    UserDefaults.standard.set(data, forKey: UserDefaults.subscribedPodcastsKey)
+    do {
+      let data = try JSONEncoder().encode(filteredPodcasts)
+      UserDefaults.standard.set(data, forKey: UserDefaults.subscribedPodcastsKey)
+    } catch let error {
+      print("Failed to delete podcast: " + podcast.trackName, error)
+    }
   }
 
   func episodeDownloaded(_ episode: Episode) -> Bool {
@@ -55,7 +62,6 @@ extension PodcastsService {
       epi != episode
     }
 
-
     do {
       let data = try JSONEncoder().encode(filteredEpisodes)
       UserDefaults.standard.set(data, forKey: UserDefaults.downloadedEpisodesKey)
@@ -73,12 +79,9 @@ extension PodcastsService {
     guard let data = UserDefaults.standard.data(forKey: UserDefaults.subscribedPodcastsKey) else {
       return []
     }
-    guard let unarchivedData = try! NSKeyedUnarchiver
-      .unarchiveTopLevelObjectWithData(data) as? Data else {
-      return []
-    }
+
     do {
-      return try PropertyListDecoder().decode([Podcast].self, from: unarchivedData)
+      return try JSONDecoder().decode([Podcast].self, from: data)
     } catch {
       return []
     }

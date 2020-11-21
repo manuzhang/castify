@@ -1,7 +1,7 @@
 import Foundation
 import FeedKit
 
-struct Episode: Codable, Equatable, Hashable {
+class Episode: Codable, Equatable, Hashable {
 
   let title: String
   let pubDate: Date
@@ -12,6 +12,11 @@ struct Episode: Codable, Equatable, Hashable {
 
   var fileUrl: String?
   var imageUrl: String?
+
+  private var played: Bool = false
+  private var deleted: Bool = false
+  private var progress: Float = 0.0
+  private var starred: Bool = false
 
   init(feedItem: RSSFeedItem) {
     self.streamUrl = feedItem.enclosure?.attributes?.url ?? ""
@@ -26,6 +31,13 @@ struct Episode: Codable, Equatable, Hashable {
   func hash(into hasher: inout Hasher) {
     hasher.combine(title)
     hasher.combine(author)
+  }
+
+  func setProgress(progress: Float) {
+    self.progress = progress
+    if (!played && progress > 0) {
+      played = true
+    }
   }
 
   static func ==(lhs: Episode, rhs: Episode) -> Bool {

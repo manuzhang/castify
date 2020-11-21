@@ -1,8 +1,3 @@
-//
-// Created by doriadong on 2020/1/27.
-// Copyright (c) 2020 com.github.albertopeam. All rights reserved.
-//
-
 import Foundation
 import SwiftUI
 

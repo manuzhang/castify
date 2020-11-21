@@ -115,14 +115,13 @@
 		C307F30422ACFF4B001579EA /* Episode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Episode.swift; sourceTree = "<group>"; };
 		C307F30A22AD01A1001579EA /* EpisodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodeView.swift; sourceTree = "<group>"; };
 		C307F30E22AD5E89001579EA /* EpisodeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodeRow.swift; sourceTree = "<group>"; };
-		C3968F0722AA416C004CB76C /* Podcasts.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Podcasts.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C3968F0722AA416C004CB76C /* Castify.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Castify.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3968F0A22AA416C004CB76C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		C3968F0C22AA416C004CB76C /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		C3968F1022AA416E004CB76C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C3968F1622AA416E004CB76C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		C3968F1822AA416E004CB76C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C3968F1D22AA416E004CB76C /* PodcastsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PodcastsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		C3968F2322AA416E004CB76C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C3D56D0122AE7C7000B0A948 /* PodcastHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastHeaderView.swift; sourceTree = "<group>"; };
 		C3D56D0422AE81C600B0A948 /* Kingfisher.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kingfisher.framework; path = Carthage/Build/iOS/Kingfisher.framework; sourceTree = "<group>"; };
 		C3E3AFC622B8BF750038821F /* ProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressView.swift; sourceTree = "<group>"; };
@@ -197,7 +196,6 @@
 			isa = PBXGroup;
 			children = (
 				C3968F0922AA416C004CB76C /* Podcasts */,
-				C3968F2022AA416E004CB76C /* PodcastsTests */,
 				C3968F0822AA416C004CB76C /* Products */,
 				C3D56D0322AE81C600B0A948 /* Frameworks */,
 			);
@@ -206,7 +204,7 @@
 		C3968F0822AA416C004CB76C /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				C3968F0722AA416C004CB76C /* Podcasts.app */,
+				C3968F0722AA416C004CB76C /* Castify.app */,
 				C3968F1D22AA416E004CB76C /* PodcastsTests.xctest */,
 			);
 			name = Products;
@@ -239,14 +237,6 @@
 				3C971B776E0ACA1725DA64BE /* UIApplicationExtension.swift */,
 			);
 			path = Podcasts;
-			sourceTree = "<group>";
-		};
-		C3968F2022AA416E004CB76C /* PodcastsTests */ = {
-			isa = PBXGroup;
-			children = (
-				C3968F2322AA416E004CB76C /* Info.plist */,
-			);
-			path = PodcastsTests;
 			sourceTree = "<group>";
 		};
 		C3968F2C22AA4A25004CB76C /* Core */ = {
@@ -366,7 +356,7 @@
 			);
 			name = Podcasts;
 			productName = Podcasts;
-			productReference = C3968F0722AA416C004CB76C /* Podcasts.app */;
+			productReference = C3968F0722AA416C004CB76C /* Castify.app */;
 			productType = "com.apple.product-type.application";
 		};
 		C3968F1C22AA416E004CB76C /* PodcastsTests */ = {
@@ -682,8 +672,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.github.albertopeam.Podcasts;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.manuzhang.Castify;
+				PRODUCT_NAME = Castify;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -710,8 +700,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.github.albertopeam.Podcasts;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.manuzhang.Castify;
+				PRODUCT_NAME = Castify;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;

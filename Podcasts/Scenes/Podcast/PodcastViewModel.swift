@@ -10,11 +10,13 @@ final class PodcastViewModel: ObservableObject {
   // MARK: - Properties
   let podcast: Podcast
   var description: String = ""
+  var subscribed: Bool
   @Published private(set) var episodes = [Episode]()
   // var dataSource: TableViewDataSource<Episode, EpisodeCell>?
 
   init(podcast: Podcast) {
     self.podcast = podcast
+    self.subscribed = podcastsService.subscribedPodcasts.contains(self.podcast)
   }
 }
 
@@ -40,20 +42,17 @@ extension PodcastViewModel {
   }
 
   func isSubscribed() -> Bool {
-    podcastsService.subscribedPodcasts.contains(self.podcast)
+    subscribed
   }
   
   func subscribe() {
-    var pods = podcastsService.subscribedPodcasts
-    pods.append(podcast)
-    let data = try! NSKeyedArchiver.archivedData(
-      withRootObject: PropertyListEncoder().encode(pods),
-      requiringSecureCoding: false)
-    UserDefaults.standard.set(data, forKey: UserDefaults.subscribedPodcastsKey)
+    podcastsService.addPodcast(self.podcast)
+    self.subscribed = true
   }
 
   func unsubscribe() {
     podcastsService.deletePodcast(podcast)
+    self.subscribed = false
   }
 
   func episode(for indexPath: IndexPath) -> Episode {

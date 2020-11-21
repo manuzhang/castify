@@ -15,7 +15,7 @@ struct PodcastRow: View {
       KFImage(self.podcast.thumbnail())
         .frame(width: 64, height: 64, alignment: .center)
         .aspectRatio(contentMode: ContentMode.fit)
-        .clipShape(Circle())
+        .clipShape(Rectangle())
       VStack(alignment: .leading) {
         Text(podcast.trackName)
           .lineLimit(nil)

@@ -126,6 +126,7 @@ class Player: ObservableObject {
       return
     }
     progress = getProgress(time: time)
+    episode.setProgress(progress: progress)
     state = .playing(episode: episode, progress: progress)
   }
 
@@ -184,7 +185,7 @@ class Player: ObservableObject {
   }
 
   private func isPlayingNow() -> Bool {
-    return avPlayer.rate > 0
+    avPlayer.rate > 0
   }
 
   private func notifySystemPlayer(episode: Episode) {

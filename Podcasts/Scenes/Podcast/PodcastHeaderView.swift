@@ -11,9 +11,9 @@ struct PodcastHeaderView: View {
         KFImage(podcast.thumbnail())
           .frame(width: 128, height: 128)
           .aspectRatio(contentMode: ContentMode.fit)
-          .clipShape(Circle())
-          .overlay(Circle().stroke(Color.white, lineWidth: 2))
-          .shadow(radius: 4)
+          //.clipShape(Circle())
+          //.overlay(Circle().stroke(Color.white, lineWidth: 2))
+          //.shadow(radius: 4)
 
 //        Text(podcast.language)
 //          .frame(alignment: .trailing)

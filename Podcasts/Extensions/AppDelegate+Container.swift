@@ -1,11 +1,3 @@
-//
-//  AppDelegate+Container.swift
-//  Search
-//
-//  Created by Alberto on 17/06/2019.
-//  Copyright © 2019 com.github.albertopeam. All rights reserved.
-//
-
 import UIKit.UIApplication
 
 extension AppDelegate {

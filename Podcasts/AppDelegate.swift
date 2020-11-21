@@ -1,11 +1,3 @@
-//
-//  AppDelegate.swift
-//  Search
-//
-//  Created by Alberto on 07/06/2019.
-//  Copyright © 2019 com.github.albertopeam. All rights reserved.
-//
-
 import UIKit
 
 @UIApplicationMain

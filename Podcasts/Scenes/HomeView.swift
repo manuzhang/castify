@@ -1,11 +1,3 @@
-//
-//  HomeView.swift
-//  Search
-//
-//  Created by Alberto on 08/06/2019.
-//  Copyright © 2019 com.github.albertopeam. All rights reserved.
-//
-
 import SwiftUI
 
 struct HomeView: View {

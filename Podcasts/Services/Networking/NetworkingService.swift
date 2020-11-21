@@ -34,39 +34,11 @@ extension NetworkingService {
           let searchResult = try response.map(SearchResult.self)
           completionHandler(searchResult.results)
         } catch let decodingError {
-          print("Failed to decode:", decodingError)
+          print("Failed to decode from " + response.description, decodingError)
         }
-
       case .failure(let error):
         print(error.errorDescription ?? "")
       }
-    }
-  }
-
-}
-
-// MARK: - Fetching episodes
-extension NetworkingService {
-
-  func fetchEpisodes(feedUrl: String, completionHandler: @escaping ([Episode]) -> Void) {
-    guard let url = URL(string: feedUrl.httpsUrlString) else {
-      return
-    }
-
-    DispatchQueue.global(qos: .background).async {
-      let parser = FeedParser(URL: url)
-
-      parser.parseAsync(result: { result in
-        switch result {
-        case .success(let feed):
-          feed.rssFeed.map {
-            let episodes = $0.toEpisodes()
-            completionHandler(episodes)
-          }
-        case .failure(let error):
-          print("Failed to parse XML feed:", error)
-        }
-      })
     }
   }
 }

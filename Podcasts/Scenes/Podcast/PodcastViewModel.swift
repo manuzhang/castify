@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import FeedKit
 
 final class PodcastViewModel: ObservableObject {
 
@@ -13,6 +14,7 @@ final class PodcastViewModel: ObservableObject {
 
   // MARK: - Properties
   let podcast: Podcast
+  var description: String = ""
   @Published private(set) var episodes = [Episode]()
   // var dataSource: TableViewDataSource<Episode, EpisodeCell>?
 
@@ -25,16 +27,27 @@ extension PodcastViewModel {
 
   func fetchEpisodes(_ completion: @escaping () -> Void) {
     print("Looking for episodes at feed url:", podcast.feedUrl)
-    // guard let feedURL = podcast.feedUrl else { return }
-    networkingService.fetchEpisodes(feedUrl: podcast.feedUrl) { [weak self] episodes in
-      guard let self = self else { return }
-      DispatchQueue.main.async {
-        self.episodes = episodes
-        completion()
+    guard let url = URL(string: podcast.feedUrl.httpsUrlString) else {
+      return
+    }
+
+    let parser = FeedParser(URL: url)
+    DispatchQueue.main.async {
+      parser.parse().map { result in
+        result.rssFeed.map { feed in
+          self.description = feed.description?.replacingOccurrences(
+              of: "\\s*<[^>]+>\\s*", with: "", options: .regularExpression, range: nil) ?? ""
+          self.episodes = feed.toEpisodes()
+          completion()
+        }
       }
     }
   }
 
+  func isSubscribed() -> Bool {
+    podcastsService.subscribedPodcasts.contains(self.podcast)
+  }
+  
   func subscribe() {
     var pods = podcastsService.subscribedPodcasts
     pods.append(podcast)

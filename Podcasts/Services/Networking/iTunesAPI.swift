@@ -1,43 +1,44 @@
-import Moya
+import Foundation
 
 enum ITunesAPI {
   case search(term: String)
+  case lookup(ids: [Int])
+  case topPodcasts(genreId: String?, limit: Int)
 }
 
-extension ITunesAPI: TargetType {
+extension ITunesAPI {
 
-  var baseURL: URL {
-    guard let url = URL(string: "https://itunes.apple.com/") else {
-      fatalError("Error in base url: https://itunes.apple.com/")
-    }
-    return url
-  }
-
-  var path: String {
-    switch self {
-    case .search:
-      return "/search"
-    }
-  }
-
-  var method: Method {
-    .get
-  }
-
-  var sampleData: Data {
-    Data()
-  }
-
-  var task: Task {
+  var urlRequest: URLRequest? {
+    var components = URLComponents()
+    components.scheme = "https"
+    components.host = "itunes.apple.com"
     switch self {
     case .search(let term):
-      let parameters = ["term": term, "media": "podcast"]
-      return .requestParameters(parameters: parameters, encoding: URLEncoding.default)
+      components.path = "/search"
+      components.queryItems = [
+        URLQueryItem(name: "term", value: term),
+        URLQueryItem(name: "media", value: "podcast")
+      ]
+    case .lookup(let ids):
+      components.path = "/lookup"
+      components.queryItems = [
+        URLQueryItem(name: "id", value: ids.map(String.init).joined(separator: ","))
+      ]
+    case .topPodcasts(let genreId, let limit):
+      var path = "/us/rss/toppodcasts/limit=\(limit)"
+      if let genreId = genreId {
+        path += "/genre=\(genreId)"
+      }
+      components.path = path + "/json"
     }
-  }
 
-  var headers: [String: String]? {
-    ["Content-type": "application/json"]
-  }
+    guard let url = components.url else {
+      return nil
+    }
 
+    var request = URLRequest(url: url)
+    request.httpMethod = "GET"
+    request.setValue("application/json", forHTTPHeaderField: "Accept")
+    return request
+  }
 }

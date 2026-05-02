@@ -1,5 +1,4 @@
 import Foundation
-import KingfisherSwiftUI
 import SwiftUI
 
 struct PodcastRow: View {
@@ -11,19 +10,22 @@ struct PodcastRow: View {
   }
 
   var body: some View {
-    HStack {
-      KFImage(self.podcast.thumbnail())
+    HStack(spacing: 12) {
+      RemoteImage(url: self.podcast.thumbnail())
         .frame(width: 64, height: 64, alignment: .center)
-        .aspectRatio(contentMode: ContentMode.fit)
-        .clipShape(Rectangle())
-      VStack(alignment: .leading) {
+        .background(Color(.tertiarySystemFill))
+        .cornerRadius(8)
+        .clipped()
+      VStack(alignment: .leading, spacing: 4) {
         Text(podcast.trackName)
-          .lineLimit(nil)
+          .lineLimit(2)
           .font(.headline)
-/*                Text(podcast.language)
-                    .lineLimit(1)
-                    .font(.caption)*/
+        Text(podcast.artistName)
+          .lineLimit(1)
+          .font(.subheadline)
+          .foregroundColor(.secondary)
       }
     }
+    .padding(.vertical, 4)
   }
 }

@@ -1,16 +1,17 @@
 import SwiftUI
 
-struct Spinner: View {
+struct Spinner: UIViewRepresentable {
 
-  let items: Int = 3
+  func makeUIView(context: UIViewRepresentableContext<Spinner>) -> UIActivityIndicatorView {
+    let spinner = UIActivityIndicatorView(style: .medium)
+    spinner.hidesWhenStopped = true
+    spinner.startAnimating()
+    return spinner
+  }
 
-  var body: some View {
-    HStack {
-      ForEach(0..<items) { (i: Int) in
-        Text("•")
-          .animation(Animation.default.repeatForever().delay(Double(i) * 0.2))
-          .font(.largeTitle)
-      }
+  func updateUIView(_ uiView: UIActivityIndicatorView, context: UIViewRepresentableContext<Spinner>) {
+    if !uiView.isAnimating {
+      uiView.startAnimating()
     }
   }
 

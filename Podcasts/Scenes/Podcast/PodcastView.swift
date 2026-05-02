@@ -5,7 +5,6 @@ struct PodcastView: View {
 
   @ObservedObject var player: Player
   @ObservedObject var viewModel: PodcastViewModel
-  @State var label: String = ""
 
   init(podcast: Podcast,
        player: Player = Container.player) {
@@ -13,57 +12,67 @@ struct PodcastView: View {
     self.viewModel = viewModel
     self.player = player
   }
-  
+
   var body: some View {
     VStack {
-      if viewModel.episodes.isEmpty {
-        Spinner()
-      } else {
-        List {
-          PodcastHeaderView(podcast: viewModel.podcast)
+      List {
+        PodcastHeaderView(podcast: viewModel.podcast)
+
+        if !viewModel.description.isEmpty {
           Text(viewModel.description)
-          if (self.viewModel.isSubscribed()) {
-            Button(
-              action: {
-                self.viewModel.unsubscribe()
-                self.label = "Subscribe"
-            },
-              label: { Text(self.label) }
-            )
-          } else {
-            Button(
-              action: {
-                self.viewModel.subscribe()
-                self.label = "Unsubscribe"
-            },
-              label: {
-                Text(self.label)
-              }
-            )
+            .font(.subheadline)
+            .foregroundColor(.secondary)
+            .lineLimit(nil)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+
+        Button(action: toggleSubscription) {
+          HStack {
+            Image(systemName: viewModel.isSubscribed() ? "checkmark.circle.fill" : "plus.circle")
+            Text(viewModel.isSubscribed() ? "Subscribed" : "Subscribe")
           }
-          
+          .font(.headline)
+        }
+
+        if viewModel.isLoading {
+          HStack {
+            Spacer()
+            Spinner()
+            Spacer()
+          }
+        } else if let message = viewModel.errorMessage {
+          Text(message)
+            .font(.subheadline)
+            .foregroundColor(.secondary)
+        } else if viewModel.episodes.isEmpty {
+          Text("No episodes available")
+            .font(.subheadline)
+            .foregroundColor(.secondary)
+        } else {
           ForEach(viewModel.episodes, id: \.self) { episode in
-            NavigationLink(destination: EpisodeView(episode: episode)) {
+            NavigationLink(destination: EpisodeView(episode: episode, episodes: self.viewModel.episodes)) {
               EpisodeRow(episode: episode)
             }
           }
         }
-        PlayerView()
       }
-    }.onAppear(perform: {
-      self.label = self.getLabel()
+      .listStyle(PlainListStyle())
+
+      PlayerView()
+    }
+    .navigationBarTitle(Text(viewModel.podcast.trackName), displayMode: .inline)
+    .onAppear(perform: {
       self.viewModel.fetchEpisodes {
         self.player.setup(for: self.viewModel.episodes)
       }
     })
   }
 
-  private func getLabel() -> String {
+  private func toggleSubscription() {
     if self.viewModel.isSubscribed() {
-      return "Unsubscribe"
+      self.viewModel.unsubscribe()
     } else {
-      return "Subscribe"
+      self.viewModel.subscribe()
     }
   }
 }
-

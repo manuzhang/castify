@@ -1,4 +1,3 @@
-import KingfisherSwiftUI
 import SwiftUI
 
 struct PodcastHeaderView: View {
@@ -6,33 +5,27 @@ struct PodcastHeaderView: View {
   let podcast: Podcast
 
   var body: some View {
-    HStack {
-      VStack {
-        KFImage(podcast.thumbnail())
-          .frame(width: 128, height: 128)
-          .aspectRatio(contentMode: ContentMode.fit)
-          //.clipShape(Circle())
-          //.overlay(Circle().stroke(Color.white, lineWidth: 2))
-          //.shadow(radius: 4)
+    HStack(alignment: .top, spacing: 16) {
+      RemoteImage(url: podcast.artworkURL())
+        .frame(width: 128, height: 128)
+        .background(Color(.tertiarySystemFill))
+        .cornerRadius(8)
+        .clipped()
 
-//        Text(podcast.language)
-//          .frame(alignment: .trailing)
-//          .lineLimit(1)
-//          .font(.caption)
-//          .foregroundColor(Color.red)
-      }
-      Spacer().frame(maxWidth: 20)
-      VStack(alignment: .leading) {
+      VStack(alignment: .leading, spacing: 8) {
         Text(podcast.trackName)
           .lineLimit(nil)
           .font(.headline)
-        Spacer().frame(maxHeight: CGFloat(10))
-//        Text(podcast.description)
-//          .lineLimit(nil)
-//          .font(.caption)
+        Text(podcast.artistName)
+          .font(.subheadline)
+          .foregroundColor(.secondary)
+          .lineLimit(2)
+        Text("\(podcast.trackCount) episodes")
+          .font(.caption)
+          .foregroundColor(.secondary)
       }
-    }.padding([.top])
+    }
+    .padding(.vertical, 8)
   }
 
 }
-

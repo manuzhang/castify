@@ -6,15 +6,14 @@ struct HomeView: View {
     TabView {
       PodcastsView()
         .tabItem {
-          Image(systemName: "list.dash")
+          Image(systemName: "square.stack")
           Text("Podcasts")
         }.tag(0)
-      SearchView()
+      PodcastBrowserView()
         .tabItem {
-          Image(systemName: "magnifyingglass")
-          Text("Search")
-        }.imageScale(.large).tag(1)
-    }.font(.headline)
+          Image(systemName: "safari")
+          Text("Browse")
+        }.tag(1)
+    }
   }
 }
-

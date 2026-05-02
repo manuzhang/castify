@@ -18,20 +18,21 @@ struct SearchBar: View {
             }) {
               Image(systemName: "xmark.circle.fill")
             }
-          } else {
-            EmptyView()
           }
         }.padding([.leading, .trailing], 8)
           .frame(height: 32)
           .foregroundColor(.secondary)
           .background(Color(.secondarySystemBackground))
           .cornerRadius(8)
-        Button(
-          action: {
-            UIApplication.shared.endEditing(true)
-          },
-          label: { Text("Cancel") }
-        ).foregroundColor(Color.yellow)
+        if !text.isEmpty {
+          Button(
+            action: {
+              self.text = ""
+              UIApplication.shared.endEditing(true)
+            },
+            label: { Text("Cancel") }
+          ).foregroundColor(.blue)
+        }
       }.padding([.leading, .trailing], 16)
     }.frame(height: 64)
   }

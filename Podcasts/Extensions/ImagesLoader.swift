@@ -1,35 +1,35 @@
 import UIKit.UIImage
 import SwiftUI
 import Combine
-import class Kingfisher.ImageDownloader
 
-//TODO: not loading images from cache, check the another cache...
 class ImagesLoader: ObservableObject {
 
-  var didChange = PassthroughSubject<ImagesLoader, Never>()
-  private(set) var images = [URL: UIImage]() {
-    didSet {
-      didChange.send(self)
-    }
-  }
-  private let downloader: ImageDownloader
-
-  init(downloader: ImageDownloader = ImageDownloader.default) {
-    self.downloader = downloader
-  }
+  @Published private(set) var images = [URL: UIImage]()
+  private var loadingURLs = Set<URL>()
 
   func load(url: URL?) {
     guard let url = url else {
       return
     }
-    downloader.downloadImage(with: url, options: nil, progressBlock: nil) { (result) in
-      switch result {
-      case .success(let image):
-        self.images[url] = image.image
-      case .failure(_):
-        break
-      }
+
+    guard images[url] == nil && !loadingURLs.contains(url) else {
+      return
     }
+
+    loadingURLs.insert(url)
+    URLSession.shared.dataTask(with: url) { data, _, _ in
+      guard let data = data, let image = UIImage(data: data) else {
+        DispatchQueue.main.async {
+          self.loadingURLs.remove(url)
+        }
+        return
+      }
+
+      DispatchQueue.main.async {
+        self.images[url] = image
+        self.loadingURLs.remove(url)
+      }
+    }.resume()
   }
 
   func image(for url: URL?) -> UIImage {
@@ -42,4 +42,25 @@ class ImagesLoader: ObservableObject {
     return image
   }
 
+}
+
+struct RemoteImage: View {
+
+  let url: URL?
+  let contentMode: ContentMode
+  @ObservedObject private var loader = ImagesLoader()
+
+  init(url: URL?, contentMode: ContentMode = .fill) {
+    self.url = url
+    self.contentMode = contentMode
+  }
+
+  var body: some View {
+    Image(uiImage: loader.image(for: url))
+      .resizable()
+      .aspectRatio(contentMode: contentMode)
+      .onAppear {
+        self.loader.load(url: self.url)
+      }
+  }
 }

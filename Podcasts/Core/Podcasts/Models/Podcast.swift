@@ -58,4 +58,12 @@ struct Podcast: Codable, Hashable {
 
     return URL(string: artworkUrl100)
   }
+
+  static func == (lhs: Podcast, rhs: Podcast) -> Bool {
+    lhs.trackId == rhs.trackId
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(trackId)
+  }
 }

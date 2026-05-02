@@ -51,16 +51,16 @@ final class PodcastFeedParser: NSObject {
   private var feedImageUrl: String?
   private var episodeDrafts = [Episode]()
   private var currentEpisode: EpisodeDraft?
-  private var currentText = ""
   private var elementStack = [String]()
+  private var textStack = [String]()
 
   func parse(data: Data) throws -> ParsedPodcastFeed {
     feedDescription = ""
     feedImageUrl = nil
     episodeDrafts = []
     currentEpisode = nil
-    currentText = ""
     elementStack = []
+    textStack = []
 
     let parser = XMLParser(data: data)
     parser.delegate = self
@@ -140,7 +140,7 @@ extension PodcastFeedParser: XMLParserDelegate {
               attributes attributeDict: [String: String] = [:]) {
     let element = normalized(elementName)
     elementStack.append(element)
-    currentText = ""
+    textStack.append("")
 
     if element == "item" {
       currentEpisode = EpisodeDraft()
@@ -162,14 +162,22 @@ extension PodcastFeedParser: XMLParserDelegate {
   }
 
   func parser(_ parser: XMLParser, foundCharacters string: String) {
-    currentText += string
+    guard !textStack.isEmpty else {
+      return
+    }
+
+    textStack[textStack.count - 1] += string
   }
 
   func parser(_ parser: XMLParser, foundCDATA CDATABlock: Data) {
     guard let string = String(data: CDATABlock, encoding: .utf8) else {
       return
     }
-    currentText += string
+    guard !textStack.isEmpty else {
+      return
+    }
+
+    textStack[textStack.count - 1] += string
   }
 
   func parser(_ parser: XMLParser,
@@ -177,7 +185,8 @@ extension PodcastFeedParser: XMLParserDelegate {
               namespaceURI: String?,
               qualifiedName qName: String?) {
     let element = normalized(elementName)
-    let text = trimmed(currentText)
+    let rawText = textStack.popLast() ?? ""
+    let text = trimmed(rawText)
 
     if var episode = currentEpisode {
       switch element {
@@ -226,6 +235,9 @@ extension PodcastFeedParser: XMLParserDelegate {
     if !elementStack.isEmpty {
       elementStack.removeLast()
     }
-    currentText = ""
+
+    if !textStack.isEmpty {
+      textStack[textStack.count - 1] += rawText
+    }
   }
 }

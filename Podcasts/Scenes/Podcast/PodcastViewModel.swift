@@ -1,5 +1,4 @@
 import Foundation
-import FeedKit
 
 final class PodcastViewModel: ObservableObject {
 
@@ -9,8 +8,10 @@ final class PodcastViewModel: ObservableObject {
 
   // MARK: - Properties
   let podcast: Podcast
-  var description: String = ""
-  var subscribed: Bool
+  @Published private(set) var description: String = ""
+  @Published private(set) var subscribed: Bool
+  @Published private(set) var isLoading: Bool = false
+  @Published private(set) var errorMessage: String?
   @Published private(set) var episodes = [Episode]()
   // var dataSource: TableViewDataSource<Episode, EpisodeCell>?
 
@@ -23,20 +24,31 @@ final class PodcastViewModel: ObservableObject {
 extension PodcastViewModel {
 
   func fetchEpisodes(_ completion: @escaping () -> Void) {
-    print("Looking for episodes at feed url:", podcast.feedUrl)
-    guard let url = URL(string: podcast.feedUrl.httpsUrlString) else {
+    guard episodes.isEmpty && !isLoading else {
+      completion()
       return
     }
 
-    let parser = FeedParser(URL: url)
-    DispatchQueue.main.async {
-      parser.parse().map { result in
-        result.rssFeed.map { feed in
-          self.description = feed.description?.replacingOccurrences(
-              of: "\\s*<[^>]+>\\s*", with: "", options: .regularExpression, range: nil) ?? ""
-          self.episodes = feed.toEpisodes()
-          completion()
-        }
+    print("Looking for episodes at feed url:", podcast.feedUrl)
+    guard let url = URL(string: podcast.feedUrl.httpsUrlString) else {
+      errorMessage = "Invalid feed URL"
+      completion()
+      return
+    }
+
+    isLoading = true
+    errorMessage = nil
+    networkingService.fetchPodcastFeed(url: url) { result in
+      self.isLoading = false
+
+      switch result {
+      case .success(let feed):
+        self.description = feed.description
+        self.episodes = feed.episodes
+        completion()
+      case .failure(let error):
+        self.errorMessage = error.localizedDescription
+        completion()
       }
     }
   }

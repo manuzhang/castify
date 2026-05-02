@@ -18,6 +18,10 @@ extension PodcastsService {
 
   func addPodcast(_ podcast: Podcast) {
     var podcasts = subscribedPodcasts
+    guard !podcasts.contains(where: { $0.trackId == podcast.trackId }) else {
+      return
+    }
+
     podcasts.append(podcast)
 
     do {
@@ -44,16 +48,24 @@ extension PodcastsService {
 
   func episodeDownloaded(_ episode: Episode) -> Bool {
     let episodes = downloadedEpisodes
-    return episodes.contains(episode)
+    guard episodes.contains(episode) else {
+      return false
+    }
+
+    guard let url = downloadedFileURL(for: episode) else {
+      return false
+    }
+
+    return FileManager.default.fileExists(atPath: url.path)
   }
 
   func deleteEpisode(_ episode: Episode) {
     let fileManager = FileManager()
-    if let path = episode.fileUrl, fileManager.fileExists(atPath: path) {
+    if let url = downloadedFileURL(for: episode), fileManager.fileExists(atPath: url.path) {
       do {
-        try fileManager.removeItem(atPath: path)
+        try fileManager.removeItem(at: url)
       } catch {
-        print("Failed to delete episode file: " + path)
+        print("Failed to delete episode file: " + url.path)
       }
     }
 
@@ -98,6 +110,19 @@ extension PodcastsService {
       print("Failed to decode:", decodeError)
       return []
     }
+  }
+
+  fileprivate func downloadedFileURL(for episode: Episode) -> URL? {
+    let storedEpisode = downloadedEpisodes.first(where: { $0 == episode }) ?? episode
+    guard let fileUrl = storedEpisode.fileUrl else {
+      return nil
+    }
+
+    if let url = URL(string: fileUrl), url.isFileURL {
+      return url
+    }
+
+    return URL(fileURLWithPath: fileUrl)
   }
 
 }

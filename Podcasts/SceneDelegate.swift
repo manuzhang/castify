@@ -18,7 +18,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     window = UIWindow(frame: windowScene.coordinateSpace.bounds)
     window?.windowScene = windowScene
     window?.rootViewController = UIHostingController(rootView:
-    HomeView().environmentObject(Player()))
+    HomeView())
     window?.makeKeyAndVisible()
   }
 
@@ -52,4 +52,3 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 
 }
-

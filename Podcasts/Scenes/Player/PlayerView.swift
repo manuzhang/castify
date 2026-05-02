@@ -1,5 +1,5 @@
+import Foundation
 import SwiftUI
-import Combine
 
 struct PlayerView: View {
 
@@ -10,46 +10,123 @@ struct PlayerView: View {
   }
 
   var body: some View {
-    VStack {
-      // if player.hasEpisodes {
-        ProgressView(progress: player.progress)
-        HStack {
-          Button(action: {
-            self.player.previous()
-          }) {
-            Image(systemName: "backward.end")
-          }.imageScale(.large)
-          Button(action: {
-            switch self.player.state {
-            case .empty, .finish:
-              break
-            case .idle:
-              self.player.play()
-            case .playing:
-              self.player.pause()
-            case .paused:
-              self.player.play()
+    Group {
+      if player.hasEpisodes {
+        VStack(spacing: 10) {
+          Slider(
+            value: Binding(
+              get: { Double(min(max(self.player.progress, 0), 1)) },
+              set: { self.player.progress = Float($0) }
+            ),
+            in: 0...1,
+            onEditingChanged: { editing in
+              if !editing {
+                self.player.seek(to: self.player.progress)
+              }
             }
-          }) { () -> Image in
-            switch self.player.state {
-            case .empty, .paused, .idle:
-              return Image(systemName: "play")
-            case .playing:
-              return Image(systemName: "pause")
-            case .finish:
-              return Image(systemName: "play")
+          )
+          .accentColor(.blue)
+
+          HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+              Text(player.current?.title)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .lineLimit(1)
+              Text(player.current?.author)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
             }
-          }.imageScale(.large)
-          Button(action: {
-            self.player.next()
-          }) {
-            Image(systemName: "forward.end")
-          }.imageScale(.large)
-          Text(player.current?.title)
-          Spacer()
-        }.padding()
+
+            Spacer(minLength: 8)
+
+            Text(timeSummary)
+              .font(.caption)
+              .foregroundColor(.secondary)
+              .lineLimit(1)
+          }
+
+          HStack(spacing: 24) {
+            Button(action: {
+              self.player.previous()
+            }) {
+              Image(systemName: "backward.end.fill")
+            }
+            .accessibility(label: Text("Previous episode"))
+
+            Button(action: {
+              self.player.seek(by: -15)
+            }) {
+              Image(systemName: "gobackward.15")
+            }
+            .accessibility(label: Text("Back 15 seconds"))
+
+            Button(action: togglePlayback) {
+              Image(systemName: player.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                .font(.system(size: 44, weight: .regular))
+            }
+            .accessibility(label: Text(player.isPlaying ? "Pause" : "Play"))
+
+            Button(action: {
+              self.player.seek(by: 30)
+            }) {
+              Image(systemName: "goforward.30")
+            }
+            .accessibility(label: Text("Forward 30 seconds"))
+
+            Button(action: {
+              self.player.next()
+            }) {
+              Image(systemName: "forward.end.fill")
+            }
+            .accessibility(label: Text("Next episode"))
+          }
+          .font(.system(size: 18, weight: .semibold))
+          .foregroundColor(.primary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
+        .background(Color(.secondarySystemBackground))
       }
-    // }
+    }
+  }
+
+  private var timeSummary: String {
+    guard player.duration > 0 else {
+      return formatTime(player.elapsedTime)
+    }
+
+    return "\(formatTime(player.elapsedTime)) / \(formatTime(player.duration))"
+  }
+
+  private func togglePlayback() {
+    switch player.state {
+    case .empty:
+      break
+    case .idle, .paused, .finish:
+      player.play()
+    case .playing:
+      player.pause()
+    }
+  }
+
+  private func formatTime(_ time: TimeInterval) -> String {
+    guard time.isFinite && !time.isNaN else {
+      return "0:00"
+    }
+
+    let totalSeconds = max(0, Int(time))
+    let hours = totalSeconds / 3600
+    let minutes = (totalSeconds % 3600) / 60
+    let seconds = totalSeconds % 60
+
+    if hours > 0 {
+      return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+    }
+
+    return String(format: "%d:%02d", minutes, seconds)
   }
 
 }

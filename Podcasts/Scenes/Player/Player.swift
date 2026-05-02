@@ -44,7 +44,7 @@ class Player: ObservableObject {
       using: didUpdatedPlayer)
     try? avSession.setCategory(AVAudioSession.Category.playback,
       mode: AVAudioSession.Mode.default,
-      options: [.allowBluetoothHFP, .allowAirPlay, .defaultToSpeaker])
+      options: [.allowBluetooth, .allowAirPlay, .defaultToSpeaker])
     configureRemoteCommands()
   }
 

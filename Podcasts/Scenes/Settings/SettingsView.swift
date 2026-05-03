@@ -31,15 +31,32 @@ struct SettingsView: View {
         }
 
         Section(header: Text("Notifications")) {
+          Toggle(
+            isOn: Binding(
+              get: { self.viewModel.notificationsEnabled },
+              set: { self.viewModel.setNotificationsEnabled($0) }
+            ),
+            label: {
+              HStack {
+                Image(systemName: "bell")
+                Text("Notifications")
+              }
+            }
+          )
+
+          HStack {
+            Text("System permission")
+            Spacer()
+            Text(viewModel.notificationStatusTitle)
+              .foregroundColor(.secondary)
+          }
+
           Button(action: {
-            self.viewModel.manageNotifications()
+            self.viewModel.refresh()
           }, label: {
             HStack {
-              Image(systemName: "bell")
-              Text(viewModel.notificationActionTitle)
-              Spacer()
-              Text(viewModel.notificationStatusTitle)
-                .foregroundColor(.secondary)
+              Image(systemName: "arrow.clockwise")
+              Text("Refresh Status")
             }
           })
 

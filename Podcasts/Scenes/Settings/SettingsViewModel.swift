@@ -7,23 +7,24 @@ final class SettingsViewModel: ObservableObject {
   @Published private(set) var isImporting = false
   @Published private(set) var notificationMessage: String?
   @Published private(set) var notificationStatus: UNAuthorizationStatus = .notDetermined
+  @Published private(set) var notificationsEnabled = false
   @Published private(set) var subscriptionCount = 0
 
   private let podcastsService: PodcastsService
   private let opmlImportService: OPMLImportService
   private let notificationCenter: UNUserNotificationCenter
+  private let userDefaults: UserDefaults
 
   init(podcastsService: PodcastsService = PodcastsService(),
        opmlImportService: OPMLImportService = OPMLImportService(),
-       notificationCenter: UNUserNotificationCenter = .current()) {
+       notificationCenter: UNUserNotificationCenter = .current(),
+       userDefaults: UserDefaults = .standard) {
     self.podcastsService = podcastsService
     self.opmlImportService = opmlImportService
     self.notificationCenter = notificationCenter
+    self.userDefaults = userDefaults
+    self.notificationsEnabled = userDefaults.bool(forKey: UserDefaults.notificationsEnabledKey)
     refresh()
-  }
-
-  var notificationActionTitle: String {
-    notificationStatus == .notDetermined ? "Allow Notifications" : "Refresh Status"
   }
 
   var notificationStatusTitle: String {
@@ -85,21 +86,44 @@ final class SettingsViewModel: ObservableObject {
     }
   }
 
-  func manageNotifications() {
+  func setNotificationsEnabled(_ enabled: Bool) {
     notificationMessage = nil
 
-    guard notificationStatus == .notDetermined else {
-      refreshNotificationStatus()
-      notificationMessage = notificationMessage(for: notificationStatus)
+    guard enabled else {
+      saveNotificationsEnabled(false)
+      notificationCenter.removeAllPendingNotificationRequests()
+      notificationCenter.removeAllDeliveredNotifications()
+      notificationMessage = "Notifications are disabled in Castify"
       return
     }
 
+    enableNotifications()
+  }
+
+  private func enableNotifications() {
+    switch notificationStatus {
+    case .notDetermined:
+      requestNotificationAuthorization()
+    case .denied:
+      saveNotificationsEnabled(false)
+      notificationMessage = "System notification permission is off"
+    case .authorized, .provisional, .ephemeral:
+      saveNotificationsEnabled(true)
+      notificationMessage = "Notifications are enabled in Castify"
+    @unknown default:
+      saveNotificationsEnabled(false)
+      notificationMessage = "Notification status is unknown"
+    }
+  }
+
+  private func requestNotificationAuthorization() {
     notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, error in
       DispatchQueue.main.async {
         if let error = error {
           self?.notificationMessage = error.localizedDescription
         } else {
-          self?.notificationMessage = granted ? "Notifications are enabled" : "Notifications are disabled"
+          self?.saveNotificationsEnabled(granted)
+          self?.notificationMessage = granted ? "Notifications are enabled in Castify" : "Notifications are disabled"
         }
 
         self?.refreshNotificationStatus()
@@ -123,24 +147,15 @@ final class SettingsViewModel: ObservableObject {
     notificationCenter.getNotificationSettings { [weak self] settings in
       DispatchQueue.main.async {
         self?.notificationStatus = settings.authorizationStatus
+        if settings.authorizationStatus == .denied {
+          self?.saveNotificationsEnabled(false)
+        }
       }
     }
   }
 
-  private func notificationMessage(for status: UNAuthorizationStatus) -> String {
-    switch status {
-    case .notDetermined:
-      return "Notification permission has not been requested"
-    case .denied:
-      return "Notifications are disabled"
-    case .authorized:
-      return "Notifications are enabled"
-    case .provisional:
-      return "Notifications are delivered quietly"
-    case .ephemeral:
-      return "Notifications are temporarily enabled"
-    @unknown default:
-      return "Notification status is unknown"
-    }
+  private func saveNotificationsEnabled(_ enabled: Bool) {
+    notificationsEnabled = enabled
+    userDefaults.set(enabled, forKey: UserDefaults.notificationsEnabledKey)
   }
 }

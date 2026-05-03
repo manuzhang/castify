@@ -12,5 +12,6 @@ extension UserDefaults {
 
   static let subscribedPodcastsKey = "subscribedPodcastsKey"
   static let downloadedEpisodesKey = "downloadedEpisodesKey"
+  static let notificationsEnabledKey = "notificationsEnabledKey"
 
 }

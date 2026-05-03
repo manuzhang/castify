@@ -30,6 +30,26 @@ struct SettingsView: View {
           }
         }
 
+        Section(header: Text("Notifications")) {
+          Button(action: {
+            self.viewModel.manageNotifications()
+          }, label: {
+            HStack {
+              Image(systemName: "bell")
+              Text(viewModel.notificationActionTitle)
+              Spacer()
+              Text(viewModel.notificationStatusTitle)
+                .foregroundColor(.secondary)
+            }
+          })
+
+          if let message = viewModel.notificationMessage {
+            Text(message)
+              .font(.subheadline)
+              .foregroundColor(.secondary)
+          }
+        }
+
         Section(header: Text("Subscriptions")) {
           HStack {
             Text("Subscribed podcasts")

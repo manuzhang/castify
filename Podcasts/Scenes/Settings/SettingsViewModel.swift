@@ -1,23 +1,52 @@
 import Foundation
+import UIKit
+import UserNotifications
 
 final class SettingsViewModel: ObservableObject {
 
   @Published private(set) var importMessage: String?
   @Published private(set) var isImporting = false
+  @Published private(set) var notificationMessage: String?
+  @Published private(set) var notificationStatus: UNAuthorizationStatus = .notDetermined
   @Published private(set) var subscriptionCount = 0
 
   private let podcastsService: PodcastsService
   private let opmlImportService: OPMLImportService
+  private let notificationCenter: UNUserNotificationCenter
 
   init(podcastsService: PodcastsService = PodcastsService(),
-       opmlImportService: OPMLImportService = OPMLImportService()) {
+       opmlImportService: OPMLImportService = OPMLImportService(),
+       notificationCenter: UNUserNotificationCenter = .current()) {
     self.podcastsService = podcastsService
     self.opmlImportService = opmlImportService
+    self.notificationCenter = notificationCenter
     refresh()
+  }
+
+  var notificationActionTitle: String {
+    notificationStatus == .notDetermined ? "Allow Notifications" : "Manage Notifications"
+  }
+
+  var notificationStatusTitle: String {
+    switch notificationStatus {
+    case .notDetermined:
+      return "Not Set"
+    case .denied:
+      return "Off"
+    case .authorized:
+      return "On"
+    case .provisional:
+      return "Quiet"
+    case .ephemeral:
+      return "Temporary"
+    @unknown default:
+      return "Unknown"
+    }
   }
 
   func refresh() {
     subscriptionCount = podcastsService.subscribedPodcasts.count
+    refreshNotificationStatus()
   }
 
   func importOPML(from url: URL) {
@@ -57,6 +86,27 @@ final class SettingsViewModel: ObservableObject {
     }
   }
 
+  func manageNotifications() {
+    notificationMessage = nil
+
+    guard notificationStatus == .notDetermined else {
+      openAppSettings()
+      return
+    }
+
+    notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, error in
+      DispatchQueue.main.async {
+        if let error = error {
+          self?.notificationMessage = error.localizedDescription
+        } else {
+          self?.notificationMessage = granted ? "Notifications are enabled" : "Notifications are disabled"
+        }
+
+        self?.refreshNotificationStatus()
+      }
+    }
+  }
+
   private func message(addedCount: Int, totalCount: Int) -> String {
     if totalCount == 0 {
       return "No podcast feeds found"
@@ -67,5 +117,21 @@ final class SettingsViewModel: ObservableObject {
     }
 
     return "Imported \(addedCount) of \(totalCount) podcasts"
+  }
+
+  private func refreshNotificationStatus() {
+    notificationCenter.getNotificationSettings { [weak self] settings in
+      DispatchQueue.main.async {
+        self?.notificationStatus = settings.authorizationStatus
+      }
+    }
+  }
+
+  private func openAppSettings() {
+    guard let url = URL(string: UIApplication.openSettingsURLString) else {
+      return
+    }
+
+    UIApplication.shared.open(url, options: [:], completionHandler: nil)
   }
 }

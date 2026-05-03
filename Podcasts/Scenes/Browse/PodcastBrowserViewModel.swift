@@ -35,6 +35,7 @@ final class PodcastBrowserViewModel: ObservableObject {
   @Published private(set) var browseErrorMessage: String?
   @Published private(set) var searchErrorMessage: String?
   @Published private(set) var subscribedPodcastIds = Set<Int>()
+  @Published private(set) var subscribedPodcastFeedUrls = Set<String>()
 
   private let networkingService: NetworkingService
   private let podcastsService: PodcastsService
@@ -99,7 +100,12 @@ final class PodcastBrowserViewModel: ObservableObject {
   }
 
   func isSubscribed(_ podcast: Podcast) -> Bool {
-    (podcast.trackId != 0 && subscribedPodcastIds.contains(podcast.trackId)) || podcastsService.containsPodcast(podcast)
+    if podcast.trackId != 0 && subscribedPodcastIds.contains(podcast.trackId) {
+      return true
+    }
+
+    let feedUrl = PodcastsService.normalizedFeedUrl(podcast.feedUrl)
+    return !feedUrl.isEmpty && subscribedPodcastFeedUrls.contains(feedUrl)
   }
 
   func toggleSubscription(for podcast: Podcast) {
@@ -113,7 +119,14 @@ final class PodcastBrowserViewModel: ObservableObject {
   }
 
   func refreshSubscriptions() {
-    subscribedPodcastIds = Set(podcastsService.subscribedPodcasts.map { $0.trackId })
+    let subscribedPodcasts = podcastsService.subscribedPodcasts
+    subscribedPodcastIds = Set(subscribedPodcasts.compactMap { podcast in
+      podcast.trackId == 0 ? nil : podcast.trackId
+    })
+    subscribedPodcastFeedUrls = Set(subscribedPodcasts.compactMap { podcast in
+      let feedUrl = PodcastsService.normalizedFeedUrl(podcast.feedUrl)
+      return feedUrl.isEmpty ? nil : feedUrl
+    })
   }
 
   private func bindSearch() {

@@ -14,6 +14,11 @@ struct HomeView: View {
           Image(systemName: "safari")
           Text("Browse")
         }.tag(1)
+      SettingsView()
+        .tabItem {
+          Image(systemName: "gearshape")
+          Text("Settings")
+        }.tag(2)
     }
   }
 }

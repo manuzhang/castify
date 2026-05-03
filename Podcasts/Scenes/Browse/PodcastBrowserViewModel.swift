@@ -99,7 +99,7 @@ final class PodcastBrowserViewModel: ObservableObject {
   }
 
   func isSubscribed(_ podcast: Podcast) -> Bool {
-    subscribedPodcastIds.contains(podcast.trackId)
+    (podcast.trackId != 0 && subscribedPodcastIds.contains(podcast.trackId)) || podcastsService.containsPodcast(podcast)
   }
 
   func toggleSubscription(for podcast: Podcast) {

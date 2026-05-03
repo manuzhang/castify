@@ -51,15 +51,6 @@ struct SettingsView: View {
               .foregroundColor(.secondary)
           }
 
-          Button(action: {
-            self.viewModel.refresh()
-          }, label: {
-            HStack {
-              Image(systemName: "arrow.clockwise")
-              Text("Refresh Status")
-            }
-          })
-
           if let message = viewModel.notificationMessage {
             Text(message)
               .font(.subheadline)

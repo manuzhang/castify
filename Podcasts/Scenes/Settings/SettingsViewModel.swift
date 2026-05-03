@@ -5,7 +5,6 @@ final class SettingsViewModel: ObservableObject {
 
   @Published private(set) var importMessage: String?
   @Published private(set) var isImporting = false
-  @Published private(set) var notificationMessage: String?
   @Published private(set) var notificationStatus: UNAuthorizationStatus = .notDetermined
   @Published private(set) var notificationsEnabled = false
   @Published private(set) var subscriptionCount = 0
@@ -27,20 +26,20 @@ final class SettingsViewModel: ObservableObject {
     refresh()
   }
 
-  var notificationStatusTitle: String {
+  var notificationStatusMessage: String? {
+    guard notificationsEnabled else {
+      return nil
+    }
+
     switch notificationStatus {
     case .notDetermined:
-      return "Not Set"
+      return "Notifications need permission from iOS"
     case .denied:
-      return "Off"
-    case .authorized:
-      return "On"
-    case .provisional:
-      return "Quiet"
-    case .ephemeral:
-      return "Temporary"
+      return "Notifications are blocked by iOS"
+    case .authorized, .provisional, .ephemeral:
+      return nil
     @unknown default:
-      return "Unknown"
+      return "Notification permission status is unknown"
     }
   }
 
@@ -87,13 +86,10 @@ final class SettingsViewModel: ObservableObject {
   }
 
   func setNotificationsEnabled(_ enabled: Bool) {
-    notificationMessage = nil
-
     guard enabled else {
       saveNotificationsEnabled(false)
       notificationCenter.removeAllPendingNotificationRequests()
       notificationCenter.removeAllDeliveredNotifications()
-      notificationMessage = "Notifications are disabled in Castify"
       return
     }
 
@@ -106,13 +102,10 @@ final class SettingsViewModel: ObservableObject {
       requestNotificationAuthorization()
     case .denied:
       saveNotificationsEnabled(false)
-      notificationMessage = "System notification permission is off"
     case .authorized, .provisional, .ephemeral:
       saveNotificationsEnabled(true)
-      notificationMessage = "Notifications are enabled in Castify"
     @unknown default:
       saveNotificationsEnabled(false)
-      notificationMessage = "Notification status is unknown"
     }
   }
 
@@ -120,10 +113,9 @@ final class SettingsViewModel: ObservableObject {
     notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, error in
       DispatchQueue.main.async {
         if let error = error {
-          self?.notificationMessage = error.localizedDescription
+          print("Failed to request notifications:", error)
         } else {
           self?.saveNotificationsEnabled(granted)
-          self?.notificationMessage = granted ? "Notifications are enabled in Castify" : "Notifications are disabled"
         }
 
         self?.refreshNotificationStatus()

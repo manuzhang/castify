@@ -44,14 +44,7 @@ struct SettingsView: View {
             }
           )
 
-          HStack {
-            Text("System permission")
-            Spacer()
-            Text(viewModel.notificationStatusTitle)
-              .foregroundColor(.secondary)
-          }
-
-          if let message = viewModel.notificationMessage {
+          if let message = viewModel.notificationStatusMessage {
             Text(message)
               .font(.subheadline)
               .foregroundColor(.secondary)

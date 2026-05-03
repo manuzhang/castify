@@ -41,6 +41,10 @@
 		C3968F1722AA416E004CB76C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C3968F1522AA416E004CB76C /* LaunchScreen.storyboard */; };
 		C4B1000126B1000000000001 /* PodcastBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4B1000226B1000000000002 /* PodcastBrowserView.swift */; };
 		C4B1000326B1000000000003 /* PodcastBrowserViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4B1000426B1000000000004 /* PodcastBrowserViewModel.swift */; };
+		C5A0000126C0000000000001 /* OPMLImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0000226C0000000000002 /* OPMLImportService.swift */; };
+		C5A0000326C0000000000003 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0000426C0000000000004 /* SettingsView.swift */; };
+		C5A0000526C0000000000005 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0000626C0000000000006 /* SettingsViewModel.swift */; };
+		C5A0000726C0000000000007 /* OPMLDocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0000826C0000000000008 /* OPMLDocumentPicker.swift */; };
 		C3D56D0222AE7C7000B0A948 /* PodcastHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D56D0122AE7C7000B0A948 /* PodcastHeaderView.swift */; };
 		C3E3AFC722B8BF750038821F /* ProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E3AFC622B8BF750038821F /* ProgressView.swift */; };
 		C3F51E7A22AF8A8C00279F4C /* Spinner.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F51E7922AF8A8C00279F4C /* Spinner.swift */; };
@@ -99,6 +103,10 @@
 		C3968F1D22AA416E004CB76C /* PodcastsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PodcastsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4B1000226B1000000000002 /* PodcastBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastBrowserView.swift; sourceTree = "<group>"; };
 		C4B1000426B1000000000004 /* PodcastBrowserViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastBrowserViewModel.swift; sourceTree = "<group>"; };
+		C5A0000226C0000000000002 /* OPMLImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OPMLImportService.swift; path = Services/OPMLImportService.swift; sourceTree = "<group>"; };
+		C5A0000426C0000000000004 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		C5A0000626C0000000000006 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
+		C5A0000826C0000000000008 /* OPMLDocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OPMLDocumentPicker.swift; sourceTree = "<group>"; };
 		C3D56D0122AE7C7000B0A948 /* PodcastHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastHeaderView.swift; sourceTree = "<group>"; };
 		C3E3AFC622B8BF750038821F /* ProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressView.swift; sourceTree = "<group>"; };
 		C3F51E7922AF8A8C00279F4C /* Spinner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spinner.swift; sourceTree = "<group>"; };
@@ -196,6 +204,7 @@
 				3C971C6B51EE6CD665D4A403 /* iTunesAPI.swift */,
 				3C9711354485994B0C262693 /* NetworkingService.swift */,
 				3C971723CE2D21838CA28A17 /* PodcastsService.swift */,
+				C5A0000226C0000000000002 /* OPMLImportService.swift */,
 				3C971F48BAFFB74A37D211A9 /* StringExtensions.swift */,
 				3C9712724BA85E2C41B03698 /* RSSFeedExtensions.swift */,
 				3C97154BC40270F17901277D /* UserDefaultsExtensions.swift */,
@@ -247,6 +256,16 @@
 			path = Browse;
 			sourceTree = "<group>";
 		};
+		C5A0000926C0000000000009 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				C5A0000426C0000000000004 /* SettingsView.swift */,
+				C5A0000626C0000000000006 /* SettingsViewModel.swift */,
+				C5A0000826C0000000000008 /* OPMLDocumentPicker.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
 		C3E1087B22AFFDFE00F05D61 /* Player */ = {
 			isa = PBXGroup;
 			children = (
@@ -287,6 +306,7 @@
 				C307F30922AD0194001579EA /* Episode */,
 				C307F30022AC1BF9001579EA /* Podcast */,
 				C4B1000526B1000000000005 /* Browse */,
+				C5A0000926C0000000000009 /* Settings */,
 				C3FE2D0822AAC64400B814BE /* Search */,
 				C307F2D922ABEFEA001579EA /* HomeView.swift */,
 				3C9713AFE1E123C88B94492A /* PodcastsView.swift */,
@@ -430,9 +450,13 @@
 				3C971C30EB48EF6D2FF3A72B /* SearchBar.swift in Sources */,
 				C4B1000126B1000000000001 /* PodcastBrowserView.swift in Sources */,
 				C4B1000326B1000000000003 /* PodcastBrowserViewModel.swift in Sources */,
+				C5A0000326C0000000000003 /* SettingsView.swift in Sources */,
+				C5A0000526C0000000000005 /* SettingsViewModel.swift in Sources */,
+				C5A0000726C0000000000007 /* OPMLDocumentPicker.swift in Sources */,
 				3C971134B2BA7B2C12850EA4 /* iTunesAPI.swift in Sources */,
 				3C971E5F08C879227D844941 /* NetworkingService.swift in Sources */,
 				3C97129C61CC1A955B95A065 /* PodcastsService.swift in Sources */,
+				C5A0000126C0000000000001 /* OPMLImportService.swift in Sources */,
 				3C97138F52C25CAD48A3B646 /* SearchResult.swift in Sources */,
 				3C9710E76C31464CC200DFD2 /* StringExtensions.swift in Sources */,
 				3C971AE0A08728A9C2B98AA1 /* RSSFeedExtensions.swift in Sources */,

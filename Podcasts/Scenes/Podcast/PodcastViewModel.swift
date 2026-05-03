@@ -17,7 +17,7 @@ final class PodcastViewModel: ObservableObject {
 
   init(podcast: Podcast) {
     self.podcast = podcast
-    self.subscribed = podcastsService.subscribedPodcasts.contains(self.podcast)
+    self.subscribed = podcastsService.containsPodcast(self.podcast)
   }
 }
 

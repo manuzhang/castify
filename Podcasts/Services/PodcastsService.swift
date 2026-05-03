@@ -16,10 +16,33 @@ final class PodcastsService {
 // MARK: - Methods
 extension PodcastsService {
 
-  func addPodcast(_ podcast: Podcast) {
+  static func normalizedFeedUrl(_ feedUrl: String) -> String {
+    let trimmed = feedUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    guard var components = URLComponents(string: trimmed) else {
+      return trimmed.lowercased()
+    }
+
+    components.scheme = components.scheme?.lowercased()
+    components.host = components.host?.lowercased()
+    if components.scheme == "http" {
+      components.scheme = "https"
+    }
+
+    return components.string ?? trimmed.lowercased()
+  }
+
+  func containsPodcast(_ podcast: Podcast) -> Bool {
+    subscribedPodcasts.contains { savedPodcast in
+      matches(savedPodcast, podcast)
+    }
+  }
+
+  @discardableResult
+  func addPodcast(_ podcast: Podcast) -> Bool {
     var podcasts = subscribedPodcasts
-    guard !podcasts.contains(where: { $0.trackId == podcast.trackId }) else {
-      return
+    guard !podcasts.contains(where: { matches($0, podcast) }) else {
+      return false
     }
 
     podcasts.append(podcast)
@@ -27,15 +50,24 @@ extension PodcastsService {
     do {
       let data = try JSONEncoder().encode(podcasts)
       UserDefaults.standard.set(data, forKey: UserDefaults.subscribedPodcastsKey)
+      return true
     } catch let error {
       print("Failed to add podcast: " + podcast.trackName, error)
+      return false
+    }
+  }
+
+  @discardableResult
+  func addPodcasts(_ podcasts: [Podcast]) -> Int {
+    podcasts.reduce(0) { count, podcast in
+      addPodcast(podcast) ? count + 1 : count
     }
   }
 
   func deletePodcast(_ podcast: Podcast) {
     let podcasts = subscribedPodcasts
     let filteredPodcasts = podcasts.filter { pod -> Bool in
-      pod.trackId != podcast.trackId
+      !matches(pod, podcast)
     }
 
     do {
@@ -80,6 +112,23 @@ extension PodcastsService {
     } catch let encodeError {
       print("Failed to encode episode: ", encodeError)
     }
+  }
+
+}
+
+// MARK: - Matching
+extension PodcastsService {
+
+  fileprivate func matches(_ lhs: Podcast, _ rhs: Podcast) -> Bool {
+    if lhs.trackId != 0 && lhs.trackId == rhs.trackId {
+      return true
+    }
+
+    guard !lhs.feedUrl.isEmpty, !rhs.feedUrl.isEmpty else {
+      return false
+    }
+
+    return Self.normalizedFeedUrl(lhs.feedUrl) == Self.normalizedFeedUrl(rhs.feedUrl)
   }
 
 }

@@ -1,5 +1,4 @@
 import Foundation
-import UIKit
 import UserNotifications
 
 final class SettingsViewModel: ObservableObject {
@@ -24,7 +23,7 @@ final class SettingsViewModel: ObservableObject {
   }
 
   var notificationActionTitle: String {
-    notificationStatus == .notDetermined ? "Allow Notifications" : "Manage Notifications"
+    notificationStatus == .notDetermined ? "Allow Notifications" : "Refresh Status"
   }
 
   var notificationStatusTitle: String {
@@ -90,7 +89,8 @@ final class SettingsViewModel: ObservableObject {
     notificationMessage = nil
 
     guard notificationStatus == .notDetermined else {
-      openAppSettings()
+      refreshNotificationStatus()
+      notificationMessage = notificationMessage(for: notificationStatus)
       return
     }
 
@@ -127,11 +127,20 @@ final class SettingsViewModel: ObservableObject {
     }
   }
 
-  private func openAppSettings() {
-    guard let url = URL(string: UIApplication.openSettingsURLString) else {
-      return
+  private func notificationMessage(for status: UNAuthorizationStatus) -> String {
+    switch status {
+    case .notDetermined:
+      return "Notification permission has not been requested"
+    case .denied:
+      return "Notifications are disabled"
+    case .authorized:
+      return "Notifications are enabled"
+    case .provisional:
+      return "Notifications are delivered quietly"
+    case .ephemeral:
+      return "Notifications are temporarily enabled"
+    @unknown default:
+      return "Notification status is unknown"
     }
-
-    UIApplication.shared.open(url, options: [:], completionHandler: nil)
   }
 }

@@ -49,8 +49,8 @@ struct PodcastBrowserView: View {
         self.viewModel.refreshSubscriptions()
         self.viewModel.loadPodcasts()
       }
-      .onReceive(localization.$language) { _ in
-        self.viewModel.reloadForLanguageChange()
+      .onReceive(localization.$language) { language in
+        self.viewModel.reloadForLanguageChange(to: language)
       }
     }
   }

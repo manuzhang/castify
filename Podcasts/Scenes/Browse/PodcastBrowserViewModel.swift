@@ -75,8 +75,8 @@ final class PodcastBrowserViewModel: ObservableObject {
     bindSearch()
   }
 
-  func loadPodcasts(force: Bool = false) {
-    let language = LocalizationService.shared.language
+  func loadPodcasts(force: Bool = false,
+                    language: AppLanguage = LocalizationService.shared.language) {
     let category = selectedCategory
     if isBrowseLoading,
        requestedBrowseLanguage == language,
@@ -151,14 +151,18 @@ final class PodcastBrowserViewModel: ObservableObject {
     })
   }
 
-  func reloadForLanguageChange() {
-    guard loadedBrowseLanguage != LocalizationService.shared.language else {
+  func reloadForLanguageChange(to language: AppLanguage) {
+    if isBrowseLoading && requestedBrowseLanguage == language {
+      return
+    }
+
+    guard loadedBrowseLanguage != language else {
       return
     }
 
     podcasts = []
     browseErrorMessageKey = nil
-    loadPodcasts(force: true)
+    loadPodcasts(force: true, language: language)
 
     guard isSearchActive else {
       searchResults = []
@@ -169,7 +173,7 @@ final class PodcastBrowserViewModel: ObservableObject {
 
     let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
     prepareSearch(query: query)
-    search(query: query)
+    search(query: query, language: language)
   }
 
   private func bindSearch() {
@@ -205,12 +209,12 @@ final class PodcastBrowserViewModel: ObservableObject {
     isSearchLoading = true
   }
 
-  private func search(query: String) {
+  private func search(query: String,
+                      language: AppLanguage = LocalizationService.shared.language) {
     guard !query.isEmpty else {
       return
     }
 
-    let language = LocalizationService.shared.language
     networkingService.fetchPodcasts(searchText: query, language: language) { [weak self] podcasts in
       guard let self = self else {
         return

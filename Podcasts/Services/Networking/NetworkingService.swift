@@ -48,8 +48,13 @@ private struct TopPodcastsResponse: Decodable {
 // MARK: - Fetching podcasts
 extension NetworkingService {
 
-  func fetchPodcasts(searchText: String, completionHandler: @escaping ([Podcast]) -> Void) {
-    guard let request = ITunesAPI.search(term: searchText).urlRequest else {
+  func fetchPodcasts(searchText: String,
+                     language: AppLanguage = LocalizationService.shared.language,
+                     completionHandler: @escaping ([Podcast]) -> Void) {
+    guard let request = ITunesAPI.search(
+      term: searchText,
+      countryCode: language.iTunesCountryCode
+    ).urlRequest else {
       completionHandler([])
       return
     }
@@ -87,8 +92,15 @@ extension NetworkingService {
     }.resume()
   }
 
-  func fetchTopPodcasts(genreId: String?, limit: Int = 50, completionHandler: @escaping ([Podcast]) -> Void) {
-    guard let request = ITunesAPI.topPodcasts(genreId: genreId, limit: limit).urlRequest else {
+  func fetchTopPodcasts(genreId: String?,
+                        limit: Int = 50,
+                        language: AppLanguage = LocalizationService.shared.language,
+                        completionHandler: @escaping ([Podcast]) -> Void) {
+    guard let request = ITunesAPI.topPodcasts(
+      genreId: genreId,
+      limit: limit,
+      storefrontPath: language.iTunesStorefrontPath
+    ).urlRequest else {
       completionHandler([])
       return
     }
@@ -116,7 +128,11 @@ extension NetworkingService {
         let response = try JSONDecoder().decode(TopPodcastsResponse.self, from: data)
         let ids = response.feed.entry?
           .compactMap { Int($0.id.attributes.podcastId) } ?? []
-        self.fetchPodcasts(ids: ids, completionHandler: completionHandler)
+        self.fetchPodcasts(
+          ids: ids,
+          language: language,
+          completionHandler: completionHandler
+        )
       } catch {
         print("Failed to decode top podcast response:", error)
         DispatchQueue.main.async {
@@ -126,9 +142,14 @@ extension NetworkingService {
     }.resume()
   }
 
-  private func fetchPodcasts(ids: [Int], completionHandler: @escaping ([Podcast]) -> Void) {
+  private func fetchPodcasts(ids: [Int],
+                             language: AppLanguage,
+                             completionHandler: @escaping ([Podcast]) -> Void) {
     guard !ids.isEmpty,
-          let request = ITunesAPI.lookup(ids: ids).urlRequest else {
+          let request = ITunesAPI.lookup(
+            ids: ids,
+            countryCode: language.iTunesCountryCode
+          ).urlRequest else {
       completionHandler([])
       return
     }

@@ -4,6 +4,7 @@ import SwiftUI
 struct PlayerView: View {
 
   @ObservedObject var player: Player
+  @EnvironmentObject var localization: LocalizationService
 
   init(player: Player = Container.player) {
     self.player = player
@@ -53,34 +54,34 @@ struct PlayerView: View {
             }) {
               Image(systemName: "backward.end.fill")
             }
-            .accessibility(label: Text("Previous episode"))
+            .accessibility(label: Text(localization.text(.previousEpisode)))
 
             Button(action: {
               self.player.seek(by: -15)
             }) {
               Image(systemName: "gobackward.15")
             }
-            .accessibility(label: Text("Back 15 seconds"))
+            .accessibility(label: Text(localization.text(.back15Seconds)))
 
             Button(action: togglePlayback) {
               Image(systemName: player.isPlaying ? "pause.circle.fill" : "play.circle.fill")
                 .font(.system(size: 44, weight: .regular))
             }
-            .accessibility(label: Text(player.isPlaying ? "Pause" : "Play"))
+            .accessibility(label: Text(localization.text(player.isPlaying ? .pause : .play)))
 
             Button(action: {
               self.player.seek(by: 30)
             }) {
               Image(systemName: "goforward.30")
             }
-            .accessibility(label: Text("Forward 30 seconds"))
+            .accessibility(label: Text(localization.text(.forward30Seconds)))
 
             Button(action: {
               self.player.next()
             }) {
               Image(systemName: "forward.end.fill")
             }
-            .accessibility(label: Text("Next episode"))
+            .accessibility(label: Text(localization.text(.nextEpisode)))
           }
           .font(.system(size: 18, weight: .semibold))
           .foregroundColor(.primary)

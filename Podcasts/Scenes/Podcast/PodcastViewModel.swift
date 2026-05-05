@@ -31,7 +31,7 @@ extension PodcastViewModel {
 
     print("Looking for episodes at feed url:", podcast.feedUrl)
     guard let url = URL(string: podcast.feedUrl.httpsUrlString) else {
-      errorMessage = "Invalid feed URL"
+      errorMessage = LocalizationService.shared.text(.invalidFeedURL)
       completion()
       return
     }

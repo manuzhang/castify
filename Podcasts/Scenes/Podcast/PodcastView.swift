@@ -5,6 +5,7 @@ struct PodcastView: View {
 
   @ObservedObject var player: Player
   @ObservedObject var viewModel: PodcastViewModel
+  @EnvironmentObject var localization: LocalizationService
 
   init(podcast: Podcast,
        player: Player = Container.player) {
@@ -29,7 +30,7 @@ struct PodcastView: View {
         Button(action: toggleSubscription) {
           HStack {
             Image(systemName: viewModel.isSubscribed() ? "checkmark.circle.fill" : "plus.circle")
-            Text(viewModel.isSubscribed() ? "Subscribed" : "Subscribe")
+            Text(localization.text(viewModel.isSubscribed() ? .subscribed : .subscribe))
           }
           .font(.headline)
         }
@@ -45,7 +46,7 @@ struct PodcastView: View {
             .font(.subheadline)
             .foregroundColor(.secondary)
         } else if viewModel.episodes.isEmpty {
-          Text("No episodes available")
+          Text(localization.text(.noEpisodesAvailable))
             .font(.subheadline)
             .foregroundColor(.secondary)
         } else {

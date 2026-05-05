@@ -3,6 +3,7 @@ import SwiftUI
 struct PodcastBrowserView: View {
 
   @ObservedObject var viewModel = PodcastBrowserViewModel()
+  @EnvironmentObject var localization: LocalizationService
 
   var body: some View {
     NavigationView {
@@ -43,10 +44,13 @@ struct PodcastBrowserView: View {
 
         PlayerView()
       }
-      .navigationBarTitle(Text("Browse"))
+      .navigationBarTitle(Text(localization.text(.browse)))
       .onAppear {
         self.viewModel.refreshSubscriptions()
         self.viewModel.loadPodcasts()
+      }
+      .onReceive(localization.$language) { _ in
+        self.viewModel.reloadForLanguageChange()
       }
     }
   }
@@ -58,7 +62,7 @@ struct PodcastBrowserView: View {
           Button(action: {
             self.viewModel.select(category)
           }, label: {
-            Text(category.title)
+            Text(localization.text(category.titleKey))
               .font(.subheadline)
               .fontWeight(category == self.viewModel.selectedCategory ? .semibold : .regular)
               .padding(.horizontal, 12)
@@ -81,6 +85,7 @@ private struct BrowsePodcastRow: View {
   let podcast: Podcast
   let isSubscribed: Bool
   let toggleSubscription: () -> Void
+  @EnvironmentObject var localization: LocalizationService
 
   var body: some View {
     HStack(spacing: 10) {
@@ -95,7 +100,7 @@ private struct BrowsePodcastRow: View {
           .frame(width: 36, height: 36)
       })
       .buttonStyle(BorderlessButtonStyle())
-      .accessibility(label: Text(isSubscribed ? "Unsubscribe" : "Subscribe"))
+      .accessibility(label: Text(localization.text(isSubscribed ? .unsubscribe : .subscribe)))
     }
   }
 }

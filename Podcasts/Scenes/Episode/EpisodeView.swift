@@ -8,6 +8,7 @@ struct EpisodeView: View {
   let podcastsService = PodcastsService()
   @ObservedObject var viewModel = EpisodeViewModel()
   @ObservedObject var player: Player
+  @EnvironmentObject var localization: LocalizationService
 
   init(episode: Episode,
        episodes: [Episode] = [],
@@ -45,7 +46,7 @@ struct EpisodeView: View {
           Button(action: togglePlayback) {
             HStack {
               Image(systemName: isCurrentEpisodePlaying ? "pause.fill" : "play.fill")
-              Text(isCurrentEpisodePlaying ? "Pause" : "Play Episode")
+              Text(localization.text(isCurrentEpisodePlaying ? .pause : .playEpisode))
                 .fontWeight(.semibold)
             }
             .frame(maxWidth: .infinity)
@@ -75,7 +76,7 @@ struct EpisodeView: View {
       if podcastsService.episodeDownloaded(episode) {
         HStack {
           Image(systemName: "checkmark.circle.fill")
-          Text("Downloaded")
+          Text(localization.text(.downloaded))
         }
         .font(.subheadline)
         .foregroundColor(.secondary)
@@ -91,7 +92,7 @@ struct EpisodeView: View {
           label: {
             HStack {
               Image(systemName: "arrow.down.circle")
-              Text("Download")
+              Text(localization.text(.download))
             }
           })
       }

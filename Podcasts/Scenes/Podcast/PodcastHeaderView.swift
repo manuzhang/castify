@@ -3,6 +3,7 @@ import SwiftUI
 struct PodcastHeaderView: View {
 
   let podcast: Podcast
+  @EnvironmentObject var localization: LocalizationService
 
   var body: some View {
     HStack(alignment: .top, spacing: 16) {
@@ -20,7 +21,7 @@ struct PodcastHeaderView: View {
           .font(.subheadline)
           .foregroundColor(.secondary)
           .lineLimit(2)
-        Text("\(podcast.trackCount) episodes")
+        Text(localization.episodeCount(podcast.trackCount))
           .font(.caption)
           .foregroundColor(.secondary)
       }

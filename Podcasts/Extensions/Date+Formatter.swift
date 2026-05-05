@@ -5,6 +5,7 @@ extension Date {
   var formatMedium: String {
     let formatter = DateFormatter()
     formatter.dateStyle = .medium
+    formatter.locale = Locale(identifier: LocalizationService.shared.localeIdentifier)
     return formatter.string(from: self)
   }
 
@@ -17,11 +18,7 @@ extension TimeInterval {
     let hours = totalSeconds / 3600
     let minutes = (totalSeconds % 3600) / 60
 
-    if hours > 0 {
-      return "\(hours)h \(minutes)m"
-    }
-
-    return "\(minutes)m"
+    return LocalizationService.shared.podcastDuration(hours: hours, minutes: minutes)
   }
 
 }

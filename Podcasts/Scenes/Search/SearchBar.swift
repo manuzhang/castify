@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SearchBar: View {
   @Binding var text: String
+  @EnvironmentObject var localization: LocalizationService
 
   var body: some View {
     ZStack {
@@ -9,7 +10,7 @@ struct SearchBar: View {
         HStack {
           Image(systemName: "magnifyingglass")
 
-          TextField("Search", text: $text)
+          TextField(localization.text(.search), text: $text)
             .foregroundColor(.primary)
 
           if !text.isEmpty {
@@ -30,7 +31,7 @@ struct SearchBar: View {
               self.text = ""
               UIApplication.shared.endEditing(true)
             },
-            label: { Text("Cancel") }
+            label: { Text(localization.text(.cancel)) }
           ).foregroundColor(.blue)
         }
       }.padding([.leading, .trailing], 16)

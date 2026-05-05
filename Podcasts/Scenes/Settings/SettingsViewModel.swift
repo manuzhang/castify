@@ -13,15 +13,18 @@ final class SettingsViewModel: ObservableObject {
   private let opmlImportService: OPMLImportService
   private let notificationCenter: UNUserNotificationCenter
   private let userDefaults: UserDefaults
+  private let localization: LocalizationService
 
   init(podcastsService: PodcastsService = PodcastsService(),
        opmlImportService: OPMLImportService = OPMLImportService(),
        notificationCenter: UNUserNotificationCenter = .current(),
-       userDefaults: UserDefaults = .standard) {
+       userDefaults: UserDefaults = .standard,
+       localization: LocalizationService = .shared) {
     self.podcastsService = podcastsService
     self.opmlImportService = opmlImportService
     self.notificationCenter = notificationCenter
     self.userDefaults = userDefaults
+    self.localization = localization
     self.notificationsEnabled = userDefaults.bool(forKey: UserDefaults.notificationsEnabledKey)
     refresh()
   }
@@ -33,13 +36,13 @@ final class SettingsViewModel: ObservableObject {
 
     switch notificationStatus {
     case .notDetermined:
-      return "Notifications need permission from iOS"
+      return localization.text(.notificationsNeedPermission)
     case .denied:
-      return "Notifications are blocked by iOS"
+      return localization.text(.notificationsBlocked)
     case .authorized, .provisional, .ephemeral:
       return nil
     @unknown default:
-      return "Notification permission status is unknown"
+      return localization.text(.notificationPermissionUnknown)
     }
   }
 
@@ -124,15 +127,7 @@ final class SettingsViewModel: ObservableObject {
   }
 
   private func message(addedCount: Int, totalCount: Int) -> String {
-    if totalCount == 0 {
-      return "No podcast feeds found"
-    }
-
-    if addedCount == 0 {
-      return "All \(totalCount) podcasts were already subscribed"
-    }
-
-    return "Imported \(addedCount) of \(totalCount) podcasts"
+    localization.importMessage(addedCount: addedCount, totalCount: totalCount)
   }
 
   private func refreshNotificationStatus() {

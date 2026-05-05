@@ -3,23 +3,25 @@ import Combine
 
 struct PodcastBrowseCategory: Identifiable, Hashable {
   let id: String
-  let title: String
+  let titleKey: AppText
   let genreId: String?
 }
 
 extension PodcastBrowseCategory {
 
   static let defaults: [PodcastBrowseCategory] = [
-    PodcastBrowseCategory(id: "all", title: "Top", genreId: nil),
-    PodcastBrowseCategory(id: "news", title: "News", genreId: "1311"),
-    PodcastBrowseCategory(id: "comedy", title: "Comedy", genreId: "1303"),
-    PodcastBrowseCategory(id: "business", title: "Business", genreId: "1321"),
-    PodcastBrowseCategory(id: "technology", title: "Technology", genreId: "1318"),
-    PodcastBrowseCategory(id: "sports", title: "Sports", genreId: "1316"),
-    PodcastBrowseCategory(id: "true-crime", title: "True Crime", genreId: "1488"),
-    PodcastBrowseCategory(id: "society", title: "Society", genreId: "1324"),
-    PodcastBrowseCategory(id: "education", title: "Education", genreId: "1304"),
-    PodcastBrowseCategory(id: "health", title: "Health", genreId: "1307")
+    PodcastBrowseCategory(id: "all", titleKey: .top, genreId: nil),
+    PodcastBrowseCategory(id: "arts", titleKey: .arts, genreId: "1301"),
+    PodcastBrowseCategory(id: "business", titleKey: .business, genreId: "1321"),
+    PodcastBrowseCategory(id: "comedy", titleKey: .comedy, genreId: "1303"),
+    PodcastBrowseCategory(id: "education", titleKey: .education, genreId: "1304"),
+    PodcastBrowseCategory(id: "leisure", titleKey: .leisure, genreId: "1502"),
+    PodcastBrowseCategory(id: "news", titleKey: .news, genreId: "1489"),
+    PodcastBrowseCategory(id: "society", titleKey: .society, genreId: "1324"),
+    PodcastBrowseCategory(id: "technology", titleKey: .technology, genreId: "1318"),
+    PodcastBrowseCategory(id: "health", titleKey: .health, genreId: "1512"),
+    PodcastBrowseCategory(id: "sports", titleKey: .sports, genreId: "1545"),
+    PodcastBrowseCategory(id: "true-crime", titleKey: .trueCrime, genreId: "1488")
   ]
 }
 
@@ -32,14 +34,17 @@ final class PodcastBrowserViewModel: ObservableObject {
   @Published private(set) var searchResults = [Podcast]()
   @Published private(set) var isBrowseLoading = false
   @Published private(set) var isSearchLoading = false
-  @Published private(set) var browseErrorMessage: String?
-  @Published private(set) var searchErrorMessage: String?
+  @Published private(set) var browseErrorMessageKey: AppText?
+  @Published private(set) var searchErrorMessageKey: AppText?
   @Published private(set) var subscribedPodcastIds = Set<Int>()
   @Published private(set) var subscribedPodcastFeedUrls = Set<String>()
 
   private let networkingService: NetworkingService
   private let podcastsService: PodcastsService
   private var latestSearchQuery = ""
+  private var loadedBrowseLanguage: AppLanguage?
+  private var requestedBrowseLanguage: AppLanguage?
+  private var requestedBrowseCategory: PodcastBrowseCategory?
   private var cancellables = Set<AnyCancellable>()
 
   var isSearchActive: Bool {
@@ -55,7 +60,11 @@ final class PodcastBrowserViewModel: ObservableObject {
   }
 
   var errorMessage: String? {
-    isSearchActive ? searchErrorMessage : browseErrorMessage
+    guard let key = isSearchActive ? searchErrorMessageKey : browseErrorMessageKey else {
+      return nil
+    }
+
+    return LocalizationService.shared.text(key)
   }
 
   init(networkingService: NetworkingService = NetworkingService(),
@@ -67,24 +76,37 @@ final class PodcastBrowserViewModel: ObservableObject {
   }
 
   func loadPodcasts(force: Bool = false) {
-    guard force || podcasts.isEmpty else {
+    let language = LocalizationService.shared.language
+    let category = selectedCategory
+    if isBrowseLoading,
+       requestedBrowseLanguage == language,
+       requestedBrowseCategory == category {
       return
     }
 
-    let category = selectedCategory
+    guard force || podcasts.isEmpty || loadedBrowseLanguage != language else {
+      return
+    }
+
+    requestedBrowseLanguage = language
+    requestedBrowseCategory = category
     isBrowseLoading = true
-    browseErrorMessage = nil
-    networkingService.fetchTopPodcasts(genreId: category.genreId) { [weak self] podcasts in
+    browseErrorMessageKey = nil
+    networkingService.fetchTopPodcasts(genreId: category.genreId, language: language) { [weak self] podcasts in
       guard let self = self else {
         return
       }
       guard self.selectedCategory == category else {
         return
       }
+      guard LocalizationService.shared.language == language else {
+        return
+      }
 
       self.isBrowseLoading = false
+      self.loadedBrowseLanguage = language
       self.podcasts = podcasts
-      self.browseErrorMessage = podcasts.isEmpty ? "Unable to load podcasts" : nil
+      self.browseErrorMessageKey = podcasts.isEmpty ? .unableToLoadPodcasts : nil
       self.refreshSubscriptions()
     }
   }
@@ -129,6 +151,27 @@ final class PodcastBrowserViewModel: ObservableObject {
     })
   }
 
+  func reloadForLanguageChange() {
+    guard loadedBrowseLanguage != LocalizationService.shared.language else {
+      return
+    }
+
+    podcasts = []
+    browseErrorMessageKey = nil
+    loadPodcasts(force: true)
+
+    guard isSearchActive else {
+      searchResults = []
+      searchErrorMessageKey = nil
+      isSearchLoading = false
+      return
+    }
+
+    let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    prepareSearch(query: query)
+    search(query: query)
+  }
+
   private func bindSearch() {
     $searchText
       .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -152,13 +195,13 @@ final class PodcastBrowserViewModel: ObservableObject {
     latestSearchQuery = query
     guard !query.isEmpty else {
       searchResults = []
-      searchErrorMessage = nil
+      searchErrorMessageKey = nil
       isSearchLoading = false
       return
     }
 
     searchResults = []
-    searchErrorMessage = nil
+    searchErrorMessageKey = nil
     isSearchLoading = true
   }
 
@@ -167,17 +210,21 @@ final class PodcastBrowserViewModel: ObservableObject {
       return
     }
 
-    networkingService.fetchPodcasts(searchText: query) { [weak self] podcasts in
+    let language = LocalizationService.shared.language
+    networkingService.fetchPodcasts(searchText: query, language: language) { [weak self] podcasts in
       guard let self = self else {
         return
       }
       guard self.latestSearchQuery == query else {
         return
       }
+      guard LocalizationService.shared.language == language else {
+        return
+      }
 
       self.isSearchLoading = false
       self.searchResults = podcasts
-      self.searchErrorMessage = podcasts.isEmpty ? "No podcasts found" : nil
+      self.searchErrorMessageKey = podcasts.isEmpty ? .noPodcastsFound : nil
       self.refreshSubscriptions()
     }
   }

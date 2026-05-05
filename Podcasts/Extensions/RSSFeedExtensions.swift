@@ -12,7 +12,7 @@ enum PodcastFeedParserError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .invalidFeed:
-      return "This podcast feed is not available"
+      return LocalizationService.shared.text(.podcastFeedUnavailable)
     }
   }
 }
@@ -36,7 +36,7 @@ final class PodcastFeedParser: NSObject {
 
       let episodeDescription = subtitle.isEmpty ? description : subtitle
       return Episode(
-        title: title.isEmpty ? "Untitled Episode" : title,
+        title: title.isEmpty ? LocalizationService.shared.text(.untitledEpisode) : title,
         pubDate: pubDate,
         description: episodeDescription,
         author: author,

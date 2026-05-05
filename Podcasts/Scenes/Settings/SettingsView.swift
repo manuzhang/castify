@@ -3,23 +3,39 @@ import SwiftUI
 struct SettingsView: View {
 
   @ObservedObject var viewModel = SettingsViewModel()
+  @EnvironmentObject var localization: LocalizationService
   @State private var showingOPMLPicker = false
 
   var body: some View {
     NavigationView {
       Form {
-        Section(header: Text("Library")) {
+        Section(header: Text(localization.text(.language))) {
+          Picker(
+            selection: Binding(
+              get: { self.localization.language },
+              set: { self.localization.setLanguage($0) }
+            ),
+            label: Text(localization.text(.language))
+          ) {
+            ForEach(AppLanguage.allCases) { language in
+              Text(self.localization.title(for: language)).tag(language)
+            }
+          }
+          .pickerStyle(SegmentedPickerStyle())
+        }
+
+        Section(header: Text(localization.text(.library))) {
           Button(action: {
             self.showingOPMLPicker = true
           }, label: {
             HStack {
               Image(systemName: "square.and.arrow.down")
-              Text("Import OPML")
+              Text(localization.text(.importOPML))
             }
           })
 
           if viewModel.isImporting {
-            Text("Importing...")
+            Text(localization.text(.importing))
               .foregroundColor(.secondary)
           }
 
@@ -30,7 +46,7 @@ struct SettingsView: View {
           }
         }
 
-        Section(header: Text("Notifications")) {
+        Section(header: Text(localization.text(.notifications))) {
           Toggle(
             isOn: Binding(
               get: { self.viewModel.notificationsEnabled },
@@ -39,7 +55,7 @@ struct SettingsView: View {
             label: {
               HStack {
                 Image(systemName: "bell")
-                Text("Notifications")
+                Text(localization.text(.notifications))
               }
             }
           )
@@ -51,16 +67,16 @@ struct SettingsView: View {
           }
         }
 
-        Section(header: Text("Subscriptions")) {
+        Section(header: Text(localization.text(.subscriptions))) {
           HStack {
-            Text("Subscribed podcasts")
+            Text(localization.text(.subscribedPodcasts))
             Spacer()
             Text("\(viewModel.subscriptionCount)")
               .foregroundColor(.secondary)
           }
         }
       }
-      .navigationBarTitle(Text("Settings"))
+      .navigationBarTitle(Text(localization.text(.settings)))
       .onAppear {
         self.viewModel.refresh()
       }

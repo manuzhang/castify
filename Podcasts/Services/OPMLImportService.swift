@@ -14,11 +14,11 @@ enum OPMLImportError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .emptyFile:
-      return "The selected file is empty"
+      return LocalizationService.shared.text(.selectedFileEmpty)
     case .invalidFile:
-      return "The selected file is not a valid OPML file"
+      return LocalizationService.shared.text(.invalidOPMLFile)
     case .noFeedsFound:
-      return "No podcast feeds found"
+      return LocalizationService.shared.text(.noPodcastFeedsFound)
     }
   }
 }
@@ -110,7 +110,7 @@ final class OPMLImportService: NSObject {
 
   private func fallbackTitle(for feedUrl: String) -> String {
     guard let url = URL(string: feedUrl), let host = url.host, !host.isEmpty else {
-      return "Imported Podcast"
+      return LocalizationService.shared.text(.importedPodcast)
     }
 
     return host

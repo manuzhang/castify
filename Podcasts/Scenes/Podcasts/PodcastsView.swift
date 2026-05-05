@@ -3,6 +3,7 @@ import SwiftUI
 
 struct PodcastsView: View {
   @ObservedObject var podcastsViewModel = PodcastsViewModel()
+  @EnvironmentObject var localization: LocalizationService
 
   var body: some View {
     NavigationView {
@@ -13,9 +14,9 @@ struct PodcastsView: View {
             Image(systemName: "dot.radiowaves.left.and.right")
               .font(.system(size: 40))
               .foregroundColor(.secondary)
-            Text("No saved podcasts")
+            Text(localization.text(.noSavedPodcasts))
               .font(.headline)
-            Text("Search for shows to build your library")
+            Text(localization.text(.searchForShows))
               .font(.subheadline)
               .foregroundColor(.secondary)
           }
@@ -35,7 +36,7 @@ struct PodcastsView: View {
 
         PlayerView()
       }
-      .navigationBarTitle(Text("Podcasts"))
+      .navigationBarTitle(Text(localization.text(.podcasts)))
       .onAppear(perform: {
         self.podcastsViewModel.updatePodcasts()
       })

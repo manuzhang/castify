@@ -18,7 +18,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     window = UIWindow(frame: windowScene.coordinateSpace.bounds)
     window?.windowScene = windowScene
     window?.rootViewController = UIHostingController(rootView:
-    HomeView())
+    HomeView().environmentObject(LocalizationService.shared))
     window?.makeKeyAndVisible()
   }
 

@@ -9,6 +9,7 @@ struct EpisodeView: View {
   @ObservedObject var viewModel = EpisodeViewModel()
   @ObservedObject var player: Player
   @EnvironmentObject var localization: LocalizationService
+  @State private var playbackState: EpisodePlaybackState?
 
   init(episode: Episode,
        episodes: [Episode] = [],
@@ -46,7 +47,7 @@ struct EpisodeView: View {
           Button(action: togglePlayback) {
             HStack {
               Image(systemName: isCurrentEpisodePlaying ? "pause.fill" : "play.fill")
-              Text(localization.text(isCurrentEpisodePlaying ? .pause : .playEpisode))
+              Text(playbackButtonTitle)
                 .fontWeight(.semibold)
             }
             .frame(maxWidth: .infinity)
@@ -55,6 +56,8 @@ struct EpisodeView: View {
             .background(Color.blue)
             .cornerRadius(8)
           }
+
+          playbackStateSection
 
           downloadSection
 
@@ -69,6 +72,26 @@ struct EpisodeView: View {
       PlayerView()
     }
     .navigationBarTitle(Text(episode.title), displayMode: .inline)
+    .onAppear {
+      self.refreshPlaybackState()
+    }
+    .onReceive(player.$state) { _ in
+      self.refreshPlaybackState()
+    }
+  }
+
+  private var playbackStateSection: some View {
+    HStack(spacing: 8) {
+      Image(systemName: playbackStatusIconName)
+        .foregroundColor(playbackState?.played == true ? .green : .blue)
+      Text(playbackStatusText)
+        .foregroundColor(.secondary)
+      Spacer()
+      Button(action: togglePlayedState) {
+        Text(localization.text(playbackState?.played == true ? .markAsUnplayed : .markAsPlayed))
+      }
+    }
+    .font(.subheadline)
   }
 
   private var downloadSection: some View {
@@ -103,11 +126,74 @@ struct EpisodeView: View {
     player.current == episode && player.isPlaying
   }
 
+  private var playbackButtonTitle: String {
+    if isCurrentEpisodePlaying {
+      return localization.text(.pause)
+    }
+
+    if playbackState?.hasResumePosition == true {
+      return localization.text(.resumeEpisode)
+    }
+
+    return localization.text(.playEpisode)
+  }
+
+  private var playbackStatusIconName: String {
+    if playbackState?.played == true {
+      return "checkmark.circle.fill"
+    }
+
+    if playbackState?.hasResumePosition == true {
+      return "play.circle.fill"
+    }
+
+    return "circle"
+  }
+
+  private var playbackStatusText: String {
+    if playbackState?.played == true {
+      return localization.text(.played)
+    }
+
+    if let state = playbackState, state.hasResumePosition {
+      return "\(localization.text(.resumeAt)) \(formatTimestamp(state.position))"
+    }
+
+    return localization.text(.unplayed)
+  }
+
   private func togglePlayback() {
     if isCurrentEpisodePlaying {
       player.pause()
     } else {
       player.play(episode: episode, in: episodes)
     }
+  }
+
+  private func togglePlayedState() {
+    if playbackState?.played == true {
+      podcastsService.markEpisodeUnplayed(episode)
+    } else {
+      podcastsService.markEpisodePlayed(episode)
+    }
+
+    refreshPlaybackState()
+  }
+
+  private func refreshPlaybackState() {
+    playbackState = podcastsService.playbackState(for: episode)
+  }
+
+  private func formatTimestamp(_ time: TimeInterval) -> String {
+    let totalSeconds = max(0, Int(time))
+    let hours = totalSeconds / 3600
+    let minutes = (totalSeconds % 3600) / 60
+    let seconds = totalSeconds % 60
+
+    if hours > 0 {
+      return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+    }
+
+    return String(format: "%d:%02d", minutes, seconds)
   }
 }

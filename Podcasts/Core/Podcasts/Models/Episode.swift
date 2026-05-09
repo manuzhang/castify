@@ -44,10 +44,19 @@ class Episode: Codable, Equatable, Hashable {
   }
 
   func setProgress(progress: Float) {
-    self.progress = progress
-    if (!played && progress > 0) {
-      played = true
-    }
+    self.progress = min(max(progress, 0), 1)
+  }
+
+  func setPlayed(_ played: Bool) {
+    self.played = played
+  }
+
+  func isPlayed() -> Bool {
+    played
+  }
+
+  func progressValue() -> Float {
+    progress
   }
 
   func imageURL() -> URL? {

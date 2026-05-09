@@ -53,6 +53,12 @@ enum AppText: String {
   case pause
   case play
   case playEpisode
+  case resumeEpisode
+  case resumeAt
+  case played
+  case unplayed
+  case markAsPlayed
+  case markAsUnplayed
   case downloaded
   case download
   case previousEpisode
@@ -115,6 +121,12 @@ final class LocalizationService: ObservableObject {
       .pause: "Pause",
       .play: "Play",
       .playEpisode: "Play Episode",
+      .resumeEpisode: "Resume Episode",
+      .resumeAt: "Resume",
+      .played: "Played",
+      .unplayed: "Unplayed",
+      .markAsPlayed: "Mark as Played",
+      .markAsUnplayed: "Mark as Unplayed",
       .downloaded: "Downloaded",
       .download: "Download",
       .previousEpisode: "Previous episode",
@@ -168,6 +180,12 @@ final class LocalizationService: ObservableObject {
       .pause: "暂停",
       .play: "播放",
       .playEpisode: "播放单集",
+      .resumeEpisode: "继续播放",
+      .resumeAt: "继续",
+      .played: "已播放",
+      .unplayed: "未播放",
+      .markAsPlayed: "标记为已播放",
+      .markAsUnplayed: "标记为未播放",
       .downloaded: "已下载",
       .download: "下载",
       .previousEpisode: "上一集",

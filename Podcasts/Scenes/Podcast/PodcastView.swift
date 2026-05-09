@@ -52,7 +52,27 @@ struct PodcastView: View {
         } else {
           ForEach(viewModel.episodes, id: \.self) { episode in
             NavigationLink(destination: EpisodeView(episode: episode, episodes: self.viewModel.episodes)) {
-              EpisodeRow(episode: episode)
+              EpisodeRow(
+                episode: episode,
+                playbackState: self.viewModel.playbackState(for: episode)
+              )
+            }
+            .contextMenu {
+              if self.viewModel.isEpisodePlayed(episode) {
+                Button(action: {
+                  self.viewModel.markEpisodeUnplayed(episode)
+                }) {
+                  Text(self.localization.text(.markAsUnplayed))
+                  Image(systemName: "circle")
+                }
+              } else {
+                Button(action: {
+                  self.viewModel.markEpisodePlayed(episode)
+                }) {
+                  Text(self.localization.text(.markAsPlayed))
+                  Image(systemName: "checkmark.circle")
+                }
+              }
             }
           }
         }

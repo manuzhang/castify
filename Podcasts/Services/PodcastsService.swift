@@ -1,5 +1,25 @@
 import Foundation
 
+struct EpisodePlaybackState: Codable, Equatable {
+  static let minimumResumePosition: TimeInterval = 5
+
+  let position: TimeInterval
+  let duration: TimeInterval
+  let played: Bool
+
+  var hasResumePosition: Bool {
+    !played && position >= Self.minimumResumePosition
+  }
+
+  var progress: Float {
+    guard duration > 0 else {
+      return 0
+    }
+
+    return Float(min(max(position / duration, 0), 1))
+  }
+}
+
 final class PodcastsService {
 
   // MARK: - Properties
@@ -114,6 +134,58 @@ extension PodcastsService {
     }
   }
 
+  func playbackState(for episode: Episode) -> EpisodePlaybackState? {
+    episodePlaybackStates()[playbackStateKey(for: episode)]
+  }
+
+  func resumePosition(for episode: Episode) -> TimeInterval {
+    guard let state = playbackState(for: episode), state.hasResumePosition else {
+      return 0
+    }
+
+    return state.position
+  }
+
+  func isEpisodePlayed(_ episode: Episode) -> Bool {
+    playbackState(for: episode)?.played == true
+  }
+
+  func savePlaybackPosition(for episode: Episode,
+                            elapsedTime: TimeInterval,
+                            duration: TimeInterval) {
+    guard duration > 0 else {
+      return
+    }
+
+    var states = episodePlaybackStates()
+    let key = playbackStateKey(for: episode)
+    let clampedPosition = min(max(elapsedTime, 0), duration)
+    let played = states[key]?.played == true || isPlayed(position: clampedPosition, duration: duration)
+    let resumablePosition = played || clampedPosition < EpisodePlaybackState.minimumResumePosition ? 0 : clampedPosition
+    let state = EpisodePlaybackState(
+      position: resumablePosition,
+      duration: duration,
+      played: played
+    )
+
+    states[key] = state
+    saveEpisodePlaybackStates(states)
+  }
+
+  func markEpisodePlayed(_ episode: Episode) {
+    var states = episodePlaybackStates()
+    let key = playbackStateKey(for: episode)
+    let duration = playbackState(for: episode)?.duration ?? episode.duration ?? 0
+    states[key] = EpisodePlaybackState(position: 0, duration: duration, played: true)
+    saveEpisodePlaybackStates(states)
+  }
+
+  func markEpisodeUnplayed(_ episode: Episode) {
+    var states = episodePlaybackStates()
+    states.removeValue(forKey: playbackStateKey(for: episode))
+    saveEpisodePlaybackStates(states)
+  }
+
 }
 
 // MARK: - Matching
@@ -172,6 +244,47 @@ extension PodcastsService {
     }
 
     return URL(fileURLWithPath: fileUrl)
+  }
+
+  fileprivate func episodePlaybackStates() -> [String: EpisodePlaybackState] {
+    guard let data = UserDefaults.standard.data(forKey: UserDefaults.episodePlaybackStatesKey) else {
+      return [:]
+    }
+
+    do {
+      return try JSONDecoder().decode([String: EpisodePlaybackState].self, from: data)
+    } catch let decodeError {
+      print("Failed to decode episode playback states:", decodeError)
+      return [:]
+    }
+  }
+
+  fileprivate func saveEpisodePlaybackStates(_ states: [String: EpisodePlaybackState]) {
+    do {
+      let data = try JSONEncoder().encode(states)
+      UserDefaults.standard.set(data, forKey: UserDefaults.episodePlaybackStatesKey)
+    } catch let encodeError {
+      print("Failed to encode episode playback states:", encodeError)
+    }
+  }
+
+  fileprivate func playbackStateKey(for episode: Episode) -> String {
+    let streamUrl = episode.streamUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !streamUrl.isEmpty {
+      return streamUrl
+    }
+
+    let timestamp = Int(episode.pubDate.timeIntervalSince1970)
+    return [episode.author, episode.title, String(timestamp)].joined(separator: "|")
+  }
+
+  fileprivate func isPlayed(position: TimeInterval, duration: TimeInterval) -> Bool {
+    guard duration > 0 else {
+      return false
+    }
+
+    let remaining = duration - position
+    return remaining <= 30 || position / duration >= 0.95
   }
 
 }

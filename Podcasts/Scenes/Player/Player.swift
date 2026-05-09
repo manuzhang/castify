@@ -25,18 +25,21 @@ class Player: ObservableObject {
   private let notificationCenter: NotificationCenter
   private let systemPlayer: MPNowPlayingInfoCenter
   private let commandCenter: MPRemoteCommandCenter
+  private let podcastsService: PodcastsService
   private var timeObserverToken: Any?
 
   init(avPlayer: AVPlayer = AVPlayer(),
        avSession: AVAudioSession = AVAudioSession.sharedInstance(),
        notificationCenter: NotificationCenter = .default,
        systemPlayer: MPNowPlayingInfoCenter = MPNowPlayingInfoCenter.default(),
-       commandCenter: MPRemoteCommandCenter = MPRemoteCommandCenter.shared()) {
+       commandCenter: MPRemoteCommandCenter = MPRemoteCommandCenter.shared(),
+       podcastsService: PodcastsService = PodcastsService()) {
     self.avPlayer = avPlayer
     self.avSession = avSession
     self.notificationCenter = notificationCenter
     self.systemPlayer = systemPlayer
     self.commandCenter = commandCenter
+    self.podcastsService = podcastsService
     self.notificationCenter.addObserver(self, selector: #selector(self.didPlayToEnd),
       name: .AVPlayerItemDidPlayToEndTime, object: nil)
     let interval = CMTime(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
@@ -149,6 +152,13 @@ class Player: ObservableObject {
       }
       DispatchQueue.main.async {
         self.updateProgress(time: time)
+        if let episode = self.current {
+          self.podcastsService.savePlaybackPosition(
+            for: episode,
+            elapsedTime: self.elapsedTime,
+            duration: self.duration
+          )
+        }
         self.notifySystemPlayer(episode: self.current)
       }
     }
@@ -187,6 +197,10 @@ class Player: ObservableObject {
   // MARK: NotificationCenter
 
   @objc private func didPlayToEnd() {
+    if let episode = current {
+      podcastsService.markEpisodePlayed(episode)
+    }
+
     guard let next = nextEpisode() else {
       if let first = episodes.first {
         load(first, in: episodes, autoplay: false)
@@ -211,6 +225,11 @@ class Player: ObservableObject {
     }
     updateProgress(time: time)
     episode.setProgress(progress: progress)
+    podcastsService.savePlaybackPosition(
+      for: episode,
+      elapsedTime: elapsedTime,
+      duration: duration
+    )
     state = .playing(episode: episode, progress: progress)
     notifySystemPlayer(episode: episode)
   }
@@ -251,7 +270,7 @@ class Player: ObservableObject {
     }
     if current != next {
       self.avPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
-      resetProgress(duration: next.duration ?? 0)
+      restorePlaybackPosition(for: next)
     }
     current = next
     avPlayer.play()
@@ -267,6 +286,12 @@ class Player: ObservableObject {
     guard let episode = current else {
       return
     }
+    updateProgress(time: avPlayer.currentTime())
+    podcastsService.savePlaybackPosition(
+      for: episode,
+      elapsedTime: elapsedTime,
+      duration: duration
+    )
     self.avPlayer.pause()
     self.notificationCenter.removeObserver(self, name: AVAudioSession.interruptionNotification, object: nil)
     notifySystemPlayer(episode: episode)
@@ -304,7 +329,7 @@ class Player: ObservableObject {
 
     if isNewEpisode || avPlayer.currentItem == nil {
       avPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
-      resetProgress(duration: episode.duration ?? 0)
+      restorePlaybackPosition(for: episode)
     }
 
     if autoplay {
@@ -328,6 +353,35 @@ class Player: ObservableObject {
     progress = 0
     elapsedTime = 0
     self.duration = duration
+  }
+
+  private func restorePlaybackPosition(for episode: Episode) {
+    let state = podcastsService.playbackState(for: episode)
+    let knownDuration = max(episode.duration ?? 0, state?.duration ?? 0)
+    resetProgress(duration: knownDuration)
+
+    guard let state = state, state.hasResumePosition else {
+      return
+    }
+
+    let targetTime = CMTime(seconds: state.position, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+    elapsedTime = state.position
+    if duration > 0 {
+      progress = state.progress
+    }
+
+    avPlayer.seek(to: targetTime) { [weak self] _ in
+      DispatchQueue.main.async {
+        guard let self = self else {
+          return
+        }
+        self.elapsedTime = state.position
+        if self.duration > 0 {
+          self.progress = state.progress
+        }
+        self.notifySystemPlayer(episode: episode)
+      }
+    }
   }
 
   private func updateProgress(time: CMTime) {

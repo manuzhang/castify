@@ -13,6 +13,7 @@ final class PodcastViewModel: ObservableObject {
   @Published private(set) var isLoading: Bool = false
   @Published private(set) var errorMessage: String?
   @Published private(set) var episodes = [Episode]()
+  @Published private(set) var playbackStateRevision = 0
   // var dataSource: TableViewDataSource<Episode, EpisodeCell>?
 
   init(podcast: Podcast) {
@@ -65,6 +66,24 @@ extension PodcastViewModel {
   func unsubscribe() {
     podcastsService.deletePodcast(podcast)
     self.subscribed = false
+  }
+
+  func playbackState(for episode: Episode) -> EpisodePlaybackState? {
+    podcastsService.playbackState(for: episode)
+  }
+
+  func isEpisodePlayed(_ episode: Episode) -> Bool {
+    podcastsService.isEpisodePlayed(episode)
+  }
+
+  func markEpisodePlayed(_ episode: Episode) {
+    podcastsService.markEpisodePlayed(episode)
+    playbackStateRevision += 1
+  }
+
+  func markEpisodeUnplayed(_ episode: Episode) {
+    podcastsService.markEpisodeUnplayed(episode)
+    playbackStateRevision += 1
   }
 
   func episode(for indexPath: IndexPath) -> Episode {

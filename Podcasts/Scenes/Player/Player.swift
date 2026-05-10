@@ -115,6 +115,22 @@ class Player: ObservableObject {
     load(episode, in: queue, autoplay: true)
   }
 
+  func play(episode: Episode, in episodes: [Episode], at time: TimeInterval) {
+    let playableEpisodes = episodes.filter({ playbackURL(for: $0) != nil })
+    var queue = playableEpisodes
+
+    guard playbackURL(for: episode) != nil else {
+      return
+    }
+
+    if !queue.contains(episode) {
+      queue.insert(episode, at: 0)
+    }
+
+    load(episode, in: queue, autoplay: true, restorePosition: false)
+    seek(toTime: time)
+  }
+
   func pause() {
     pauseNow()
   }
@@ -178,6 +194,34 @@ class Player: ObservableObject {
     let targetSeconds = min(max(currentSeconds + seconds, 0), totalTime)
     let targetProgress = Float(targetSeconds / totalTime)
     seek(to: targetProgress)
+  }
+
+  func seek(toTime time: TimeInterval) {
+    guard let currentItem = avPlayer.currentItem else {
+      return
+    }
+
+    let totalTime = validSeconds(from: currentItem.duration)
+    let targetSeconds = totalTime > 0 ? min(max(time, 0), totalTime) : max(time, 0)
+    let targetTime = CMTime(seconds: targetSeconds, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+
+    avPlayer.seek(to: targetTime) { [weak self] _ in
+      guard let self = self else {
+        return
+      }
+
+      DispatchQueue.main.async {
+        self.updateProgress(time: targetTime)
+        if let episode = self.current {
+          self.podcastsService.savePlaybackPosition(
+            for: episode,
+            elapsedTime: self.elapsedTime,
+            duration: self.duration
+          )
+        }
+        self.notifySystemPlayer(episode: self.current)
+      }
+    }
   }
 
   func getProgress(time: CMTime) -> Float {
@@ -318,7 +362,12 @@ class Player: ObservableObject {
     systemPlayer.nowPlayingInfo = info
   }
 
-  private func load(_ episode: Episode, in episodes: [Episode], autoplay: Bool) {
+  private func load(
+    _ episode: Episode,
+    in episodes: [Episode],
+    autoplay: Bool,
+    restorePosition: Bool = true
+  ) {
     guard let url = playbackURL(for: episode) else {
       return
     }
@@ -329,7 +378,11 @@ class Player: ObservableObject {
 
     if isNewEpisode || avPlayer.currentItem == nil {
       avPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
-      restorePlaybackPosition(for: episode)
+      if restorePosition {
+        restorePlaybackPosition(for: episode)
+      } else {
+        resetProgress(duration: knownDuration(for: episode))
+      }
     }
 
     if autoplay {
@@ -355,10 +408,14 @@ class Player: ObservableObject {
     self.duration = duration
   }
 
+  private func knownDuration(for episode: Episode) -> TimeInterval {
+    let state = podcastsService.playbackState(for: episode)
+    return max(episode.duration ?? 0, state?.duration ?? 0)
+  }
+
   private func restorePlaybackPosition(for episode: Episode) {
     let state = podcastsService.playbackState(for: episode)
-    let knownDuration = max(episode.duration ?? 0, state?.duration ?? 0)
-    resetProgress(duration: knownDuration)
+    resetProgress(duration: knownDuration(for: episode))
 
     guard let state = state, state.hasResumePosition else {
       return

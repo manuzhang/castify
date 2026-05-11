@@ -35,6 +35,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="logo-dark" width="1708" height="155"/>
+        <image name="logo-dark" width="1024" height="1024"/>
     </resources>
 </document>

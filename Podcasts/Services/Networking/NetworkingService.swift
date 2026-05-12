@@ -227,6 +227,54 @@ extension NetworkingService {
 
   typealias EpisodeDownloadComplete = (fileUrl: String, episodeTitle: String)
 
+  func autoDownloadEpisodes(for podcast: Podcast,
+                            limit: Int,
+                            completionHandler: ((Int) -> Void)? = nil) {
+    guard limit > 0 else {
+      completionHandler?(0)
+      return
+    }
+
+    guard let url = URL(string: podcast.feedUrl.httpsUrlString) else {
+      completionHandler?(0)
+      return
+    }
+
+    fetchPodcastFeed(url: url) { [weak self] result in
+      guard let self = self else {
+        completionHandler?(0)
+        return
+      }
+
+      guard case .success(let feed) = result else {
+        completionHandler?(0)
+        return
+      }
+
+      completionHandler?(self.autoDownloadEpisodes(feed.episodes, limit: limit))
+    }
+  }
+
+  @discardableResult
+  func autoDownloadEpisodes(_ episodes: [Episode], limit: Int) -> Int {
+    guard limit > 0 else {
+      return 0
+    }
+
+    let episodesToDownload = episodes
+      .sorted { $0.pubDate > $1.pubDate }
+      .filter { episode in
+        !episode.streamUrl.isEmpty && !(podcastsService?.episodeDownloaded(episode) ?? false)
+      }
+      .prefix(limit)
+
+    episodesToDownload.forEach { episode in
+      downloadEpisode(episode) { _ in }
+    }
+
+    return episodesToDownload.count
+  }
+
   func downloadEpisode(_ episode: Episode, _ handler: @escaping (Progress) -> Void) {
     print("Downloading episode at stream url:", episode.streamUrl)
     guard let url = URL(string: episode.streamUrl) else {
@@ -259,8 +307,7 @@ extension NetworkingService {
 
   private func destinationURL(for episode: Episode, sourceURL: URL) -> URL {
     let fileManager = FileManager.default
-    let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
-    let episodesDirectory = documentsURL.appendingPathComponent("Episodes", isDirectory: true)
+    let episodesDirectory = PodcastsService.downloadedEpisodesDirectoryURL()
     try? fileManager.createDirectory(at: episodesDirectory, withIntermediateDirectories: true, attributes: nil)
 
     let fileExtension = sourceURL.pathExtension.isEmpty ? "mp3" : sourceURL.pathExtension
@@ -274,7 +321,6 @@ extension NetworkingService {
     print("Downloaded episode to: ", path)
     let episodeDownloadComplete = EpisodeDownloadComplete(fileUrl: path,
       episodeTitle: episode.title)
-    NotificationCenter.default.post(name: .downloadComplete, object: episodeDownloadComplete, userInfo: nil)
 
     var downloadedEpisodes = podcastsService?.downloadedEpisodes ?? []
     let downloadedEpisode = episode
@@ -285,6 +331,7 @@ extension NetworkingService {
     do {
       let data = try JSONEncoder().encode(downloadedEpisodes)
       UserDefaults.standard.set(data, forKey: UserDefaults.downloadedEpisodesKey)
+      NotificationCenter.default.post(name: .downloadComplete, object: episodeDownloadComplete, userInfo: nil)
     } catch let downloadingError {
       print("Failed to encode downloaded episodes with file url update:", downloadingError)
     }

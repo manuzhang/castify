@@ -46,6 +46,64 @@ struct SettingsView: View {
           }
         }
 
+        Section(header: Text(localization.text(.downloads))) {
+          Toggle(
+            isOn: Binding(
+              get: { self.viewModel.autoDownloadEnabled },
+              set: { self.viewModel.setAutoDownloadEnabled($0) }
+            ),
+            label: {
+              HStack {
+                Image(systemName: "arrow.down.circle")
+                Text(localization.text(.autoDownloadEpisodes))
+              }
+            }
+          )
+
+          Stepper(
+            value: Binding(
+              get: { self.viewModel.autoDownloadEpisodeLimit },
+              set: { self.viewModel.setAutoDownloadEpisodeLimit($0) }
+            ),
+            in: PodcastsService.autoDownloadEpisodeLimitRange,
+            label: {
+              HStack {
+                Text(localization.text(.episodesPerPodcast))
+                Spacer()
+                Text("\(viewModel.autoDownloadEpisodeLimit)")
+                  .foregroundColor(.secondary)
+              }
+            }
+          )
+          .disabled(!viewModel.autoDownloadEnabled)
+        }
+
+        Section(header: Text(localization.text(.storage))) {
+          HStack {
+            Text(localization.text(.downloadedEpisodes))
+            Spacer()
+            Text("\(viewModel.downloadedEpisodeCount)")
+              .foregroundColor(.secondary)
+          }
+
+          HStack {
+            Text(localization.text(.storageUsed))
+            Spacer()
+            Text(viewModel.storageUsedText)
+              .foregroundColor(.secondary)
+          }
+
+          Button(action: {
+            self.viewModel.clearDownloads()
+          }, label: {
+            HStack {
+              Image(systemName: "trash")
+              Text(localization.text(.clearDownloads))
+            }
+          })
+          .disabled(viewModel.downloadedEpisodeCount == 0)
+        }
+
         Section(header: Text(localization.text(.notifications))) {
           Toggle(
             isOn: Binding(

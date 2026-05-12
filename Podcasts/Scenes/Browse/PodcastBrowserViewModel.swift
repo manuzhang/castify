@@ -134,7 +134,13 @@ final class PodcastBrowserViewModel: ObservableObject {
     if isSubscribed(podcast) {
       podcastsService.deletePodcast(podcast)
     } else {
-      podcastsService.addPodcast(podcast)
+      let added = podcastsService.addPodcast(podcast)
+      if added && podcastsService.autoDownloadEnabled {
+        networkingService.autoDownloadEpisodes(
+          for: podcast,
+          limit: podcastsService.autoDownloadEpisodeLimit
+        )
+      }
     }
 
     refreshSubscriptions()

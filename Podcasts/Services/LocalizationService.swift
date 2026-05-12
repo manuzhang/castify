@@ -69,6 +69,13 @@ enum AppText: String {
   case language
   case importOPML
   case importing
+  case downloads
+  case autoDownloadEpisodes
+  case episodesPerPodcast
+  case storage
+  case downloadedEpisodes
+  case storageUsed
+  case clearDownloads
   case notifications
   case subscriptions
   case subscribedPodcasts
@@ -137,6 +144,13 @@ final class LocalizationService: ObservableObject {
       .language: "Language",
       .importOPML: "Import OPML",
       .importing: "Importing...",
+      .downloads: "Downloads",
+      .autoDownloadEpisodes: "Auto-download episodes",
+      .episodesPerPodcast: "Episodes per podcast",
+      .storage: "Storage",
+      .downloadedEpisodes: "Downloaded episodes",
+      .storageUsed: "Storage used",
+      .clearDownloads: "Clear downloads",
       .notifications: "Notifications",
       .subscriptions: "Subscriptions",
       .subscribedPodcasts: "Subscribed podcasts",
@@ -196,6 +210,13 @@ final class LocalizationService: ObservableObject {
       .language: "语言",
       .importOPML: "导入 OPML",
       .importing: "正在导入...",
+      .downloads: "下载",
+      .autoDownloadEpisodes: "自动下载单集",
+      .episodesPerPodcast: "每个播客单集数",
+      .storage: "存储",
+      .downloadedEpisodes: "已下载单集",
+      .storageUsed: "已用存储",
+      .clearDownloads: "清除下载",
       .notifications: "通知",
       .subscriptions: "订阅",
       .subscribedPodcasts: "已订阅播客",

@@ -22,6 +22,9 @@ struct EpisodePlaybackState: Codable, Equatable {
 
 final class PodcastsService {
 
+  static let defaultAutoDownloadEpisodeLimit = 3
+  static let autoDownloadEpisodeLimitRange = 1...10
+
   // MARK: - Properties
   var subscribedPodcasts: [Podcast] {
     fetchSavedPodcasts()
@@ -29,6 +32,33 @@ final class PodcastsService {
 
   var downloadedEpisodes: [Episode] {
     fetchDownloadedEpisodes()
+  }
+
+  var autoDownloadEnabled: Bool {
+    get {
+      UserDefaults.standard.bool(forKey: UserDefaults.autoDownloadEnabledKey)
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: UserDefaults.autoDownloadEnabledKey)
+    }
+  }
+
+  var autoDownloadEpisodeLimit: Int {
+    get {
+      let savedLimit = UserDefaults.standard.integer(forKey: UserDefaults.autoDownloadEpisodeLimitKey)
+      guard Self.autoDownloadEpisodeLimitRange.contains(savedLimit) else {
+        return Self.defaultAutoDownloadEpisodeLimit
+      }
+
+      return savedLimit
+    }
+    set {
+      let clampedLimit = min(
+        max(newValue, Self.autoDownloadEpisodeLimitRange.lowerBound),
+        Self.autoDownloadEpisodeLimitRange.upperBound
+      )
+      UserDefaults.standard.set(clampedLimit, forKey: UserDefaults.autoDownloadEpisodeLimitKey)
+    }
   }
 
 }
@@ -134,6 +164,48 @@ extension PodcastsService {
     }
   }
 
+  func clearDownloadedEpisodes() {
+    let fileManager = FileManager.default
+    let episodesDirectory = Self.downloadedEpisodesDirectoryURL()
+
+    if fileManager.fileExists(atPath: episodesDirectory.path) {
+      do {
+        try fileManager.removeItem(at: episodesDirectory)
+      } catch {
+        print("Failed to delete downloaded episodes directory: " + episodesDirectory.path, error)
+      }
+    }
+
+    UserDefaults.standard.removeObject(forKey: UserDefaults.downloadedEpisodesKey)
+  }
+
+  func downloadedEpisodeCount() -> Int {
+    downloadedEpisodes.filter { episodeDownloaded($0) }.count
+  }
+
+  func downloadedEpisodesStorageSize() -> Int64 {
+    let fileManager = FileManager.default
+    let episodesDirectory = Self.downloadedEpisodesDirectoryURL()
+
+    guard let enumerator = fileManager.enumerator(
+      at: episodesDirectory,
+      includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey],
+      options: [.skipsHiddenFiles]
+    ) else {
+      return 0
+    }
+
+    return enumerator.compactMap { item -> Int64? in
+      guard let url = item as? URL,
+            let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]),
+            values.isRegularFile == true else {
+        return nil
+      }
+
+      return Int64(values.fileSize ?? 0)
+    }.reduce(0, +)
+  }
+
   func playbackState(for episode: Episode) -> EpisodePlaybackState? {
     episodePlaybackStates()[playbackStateKey(for: episode)]
   }
@@ -190,6 +262,11 @@ extension PodcastsService {
 
 // MARK: - Matching
 extension PodcastsService {
+
+  static func downloadedEpisodesDirectoryURL() -> URL {
+    let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    return documentsURL.appendingPathComponent("Episodes", isDirectory: true)
+  }
 
   fileprivate func matches(_ lhs: Podcast, _ rhs: Podcast) -> Bool {
     if lhs.trackId != 0 && lhs.trackId == rhs.trackId {

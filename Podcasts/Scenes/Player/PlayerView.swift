@@ -7,6 +7,7 @@ struct PlayerView: View {
   @EnvironmentObject var localization: LocalizationService
   @State private var isShowingQueue = false
   @State private var queueEpisodes = [Episode]()
+  @State private var isShowingInProgressQueue = false
   private let podcastsService = PodcastsService()
 
   init(player: Player = Container.player) {
@@ -175,14 +176,26 @@ struct PlayerView: View {
   }
 
   private func showQueue() {
+    let activeQueue = player.queueEpisodes
+    if !activeQueue.isEmpty {
+      queueEpisodes = activeQueue
+      isShowingInProgressQueue = false
+      isShowingQueue = true
+      return
+    }
+
     let inProgressEpisodes = podcastsService.inProgressEpisodes()
-    queueEpisodes = inProgressEpisodes.isEmpty ? player.queueEpisodes : inProgressEpisodes
+    queueEpisodes = inProgressEpisodes
+    isShowingInProgressQueue = true
     isShowingQueue = !queueEpisodes.isEmpty
   }
 
   private func reorderQueue(_ episodes: [Episode]) {
     queueEpisodes = episodes
-    podcastsService.reorderInProgressEpisodes(episodes)
+
+    if isShowingInProgressQueue {
+      podcastsService.reorderInProgressEpisodes(episodes)
+    }
 
     if let current = player.current, episodes.contains(current) {
       player.updateQueue(episodes)

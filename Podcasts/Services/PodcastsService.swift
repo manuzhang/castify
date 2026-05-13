@@ -141,6 +141,15 @@ extension PodcastsService {
     return FileManager.default.fileExists(atPath: url.path)
   }
 
+  func downloadedPlaybackURL(for episode: Episode) -> URL? {
+    guard let url = downloadedFileURL(for: episode),
+          FileManager.default.fileExists(atPath: url.path) else {
+      return nil
+    }
+
+    return url
+  }
+
   func deleteEpisode(_ episode: Episode) {
     let fileManager = FileManager()
     if let url = downloadedFileURL(for: episode), fileManager.fileExists(atPath: url.path) {

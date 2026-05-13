@@ -261,12 +261,14 @@ extension NetworkingService {
       return 0
     }
 
-    let episodesToDownload = episodes
+    let targetEpisodes = episodes
       .sorted { $0.pubDate > $1.pubDate }
-      .filter { episode in
-        !episode.streamUrl.isEmpty && !(podcastsService?.episodeDownloaded(episode) ?? false)
-      }
+      .filter { !$0.streamUrl.isEmpty }
       .prefix(limit)
+
+    let episodesToDownload = targetEpisodes.filter { episode in
+      !(podcastsService?.episodeDownloaded(episode) ?? false)
+    }
 
     episodesToDownload.forEach { episode in
       downloadEpisode(episode) { _ in }

@@ -18,7 +18,7 @@ class Player: ObservableObject {
   @Published var elapsedTime: TimeInterval = 0
   @Published var duration: TimeInterval = 0
 
-  var current: Episode?
+  @Published var current: Episode?
   private var episodes: [Episode] = []
   private let avPlayer: AVPlayer
   private let avSession: AVAudioSession
@@ -86,6 +86,10 @@ class Player: ObservableObject {
     current != nil
   }
 
+  var queueEpisodes: [Episode] {
+    episodes
+  }
+
   var isPlaying: Bool {
     if case .playing = state {
       return true
@@ -129,6 +133,28 @@ class Player: ObservableObject {
 
     load(episode, in: queue, autoplay: true, restorePosition: false)
     seek(toTime: time)
+  }
+
+  func playQueue(_ episodes: [Episode]) {
+    let playableEpisodes = episodes.filter({ playbackURL(for: $0) != nil })
+    guard let first = playableEpisodes.first else {
+      return
+    }
+
+    load(first, in: playableEpisodes, autoplay: true)
+  }
+
+  func updateQueue(_ episodes: [Episode]) {
+    var playableEpisodes = episodes.filter({ playbackURL(for: $0) != nil })
+    guard !playableEpisodes.isEmpty else {
+      return
+    }
+
+    if let current = current, !playableEpisodes.contains(current) {
+      playableEpisodes.insert(current, at: 0)
+    }
+
+    self.episodes = playableEpisodes
   }
 
   func pause() {

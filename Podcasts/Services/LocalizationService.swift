@@ -65,6 +65,9 @@ enum AppText: String {
   case back15Seconds
   case forward30Seconds
   case nextEpisode
+  case upNext
+  case playAll
+  case episodes
   case library
   case language
   case importOPML
@@ -140,6 +143,9 @@ final class LocalizationService: ObservableObject {
       .back15Seconds: "Back 15 seconds",
       .forward30Seconds: "Forward 30 seconds",
       .nextEpisode: "Next episode",
+      .upNext: "Up Next",
+      .playAll: "Play All",
+      .episodes: "episodes",
       .library: "Library",
       .language: "Language",
       .importOPML: "Import OPML",
@@ -206,6 +212,9 @@ final class LocalizationService: ObservableObject {
       .back15Seconds: "后退 15 秒",
       .forward30Seconds: "前进 30 秒",
       .nextEpisode: "下一集",
+      .upNext: "待播列表",
+      .playAll: "全部播放",
+      .episodes: "单集",
       .library: "资料库",
       .language: "语言",
       .importOPML: "导入 OPML",

@@ -7,6 +7,7 @@ struct PodcastsView: View {
   @EnvironmentObject var localization: LocalizationService
   @State private var isShowingUpNextQueue = false
   @State private var queueEpisodes = [Episode]()
+  @State private var isShowingInProgressQueue = false
 
   init(player: Player = Container.player) {
     self.player = player
@@ -157,7 +158,7 @@ struct PodcastsView: View {
   }
 
   private var displayedEpisode: Episode? {
-    currentEpisode ?? podcastsViewModel.upNextEpisodes.first
+    currentEpisode ?? player.queueEpisodes.first ?? podcastsViewModel.upNextEpisodes.first
   }
 
   private var isDisplayedEpisodePlaying: Bool {
@@ -166,15 +167,23 @@ struct PodcastsView: View {
 
   private func showUpNextQueue() {
     podcastsViewModel.updateUpNextEpisodes()
-    queueEpisodes = podcastsViewModel.upNextEpisodes.isEmpty
-      ? player.queueEpisodes
-      : podcastsViewModel.upNextEpisodes
+    let activeQueue = player.queueEpisodes
+    if !activeQueue.isEmpty {
+      queueEpisodes = activeQueue
+      isShowingInProgressQueue = false
+    } else {
+      queueEpisodes = podcastsViewModel.upNextEpisodes
+      isShowingInProgressQueue = true
+    }
     isShowingUpNextQueue = !queueEpisodes.isEmpty
   }
 
   private func reorderUpNextQueue(_ episodes: [Episode]) {
     queueEpisodes = episodes
-    podcastsViewModel.reorderUpNextEpisodes(episodes)
+
+    if isShowingInProgressQueue {
+      podcastsViewModel.reorderUpNextEpisodes(episodes)
+    }
 
     player.updateQueue(episodes)
   }
@@ -197,9 +206,9 @@ struct PodcastsView: View {
   }
 
   private func playFromQueue(_ episode: Episode) {
-    let episodes = podcastsViewModel.upNextEpisodes.isEmpty
-      ? player.queueEpisodes
-      : podcastsViewModel.upNextEpisodes
+    let episodes = player.queueEpisodes.isEmpty
+      ? podcastsViewModel.upNextEpisodes
+      : player.queueEpisodes
     player.play(episode: episode, in: episodes.isEmpty ? [episode] : episodes)
   }
 }

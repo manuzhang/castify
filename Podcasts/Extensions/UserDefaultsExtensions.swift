@@ -15,5 +15,7 @@ extension UserDefaults {
   static let notificationsEnabledKey = "notificationsEnabledKey"
   static let appLanguageKey = "appLanguageKey"
   static let episodePlaybackStatesKey = "episodePlaybackStatesKey"
+  static let autoDownloadEnabledKey = "autoDownloadEnabledKey"
+  static let autoDownloadEpisodeLimitKey = "autoDownloadEpisodeLimitKey"
 
 }

@@ -8,25 +8,43 @@ final class SettingsViewModel: ObservableObject {
   @Published private(set) var notificationStatus: UNAuthorizationStatus = .notDetermined
   @Published private(set) var notificationsEnabled = false
   @Published private(set) var subscriptionCount = 0
+  @Published private(set) var autoDownloadEnabled = false
+  @Published private(set) var autoDownloadEpisodeLimit = PodcastsService.defaultAutoDownloadEpisodeLimit
+  @Published private(set) var downloadedEpisodeCount = 0
+  @Published private(set) var storageUsedText = ByteCountFormatter.string(fromByteCount: 0, countStyle: .file)
 
   private let podcastsService: PodcastsService
+  private let networkingService: NetworkingService
   private let opmlImportService: OPMLImportService
   private let notificationCenter: UNUserNotificationCenter
+  private let eventCenter: NotificationCenter
   private let userDefaults: UserDefaults
   private let localization: LocalizationService
+  private var downloadCompleteObserver: NSObjectProtocol?
 
   init(podcastsService: PodcastsService = PodcastsService(),
+       networkingService: NetworkingService = NetworkingService(),
        opmlImportService: OPMLImportService = OPMLImportService(),
        notificationCenter: UNUserNotificationCenter = .current(),
+       eventCenter: NotificationCenter = .default,
        userDefaults: UserDefaults = .standard,
        localization: LocalizationService = .shared) {
     self.podcastsService = podcastsService
+    self.networkingService = networkingService
     self.opmlImportService = opmlImportService
     self.notificationCenter = notificationCenter
+    self.eventCenter = eventCenter
     self.userDefaults = userDefaults
     self.localization = localization
     self.notificationsEnabled = userDefaults.bool(forKey: UserDefaults.notificationsEnabledKey)
     refresh()
+    observeDownloads()
+  }
+
+  deinit {
+    if let downloadCompleteObserver = downloadCompleteObserver {
+      eventCenter.removeObserver(downloadCompleteObserver)
+    }
   }
 
   var notificationStatusMessage: String? {
@@ -48,6 +66,13 @@ final class SettingsViewModel: ObservableObject {
 
   func refresh() {
     subscriptionCount = podcastsService.subscribedPodcasts.count
+    autoDownloadEnabled = podcastsService.autoDownloadEnabled
+    autoDownloadEpisodeLimit = podcastsService.autoDownloadEpisodeLimit
+    downloadedEpisodeCount = podcastsService.downloadedEpisodeCount()
+    storageUsedText = ByteCountFormatter.string(
+      fromByteCount: podcastsService.downloadedEpisodesStorageSize(),
+      countStyle: .file
+    )
     refreshNotificationStatus()
   }
 
@@ -74,6 +99,9 @@ final class SettingsViewModel: ObservableObject {
 
         DispatchQueue.main.async {
           let addedCount = self.podcastsService.addPodcasts(podcasts)
+          if addedCount > 0 && self.podcastsService.autoDownloadEnabled {
+            self.queueAutoDownloads(for: podcasts)
+          }
           self.importMessage = self.message(addedCount: addedCount, totalCount: podcasts.count)
           self.isImporting = false
           self.refresh()
@@ -97,6 +125,33 @@ final class SettingsViewModel: ObservableObject {
     }
 
     enableNotifications()
+  }
+
+  func setAutoDownloadEnabled(_ enabled: Bool) {
+    podcastsService.autoDownloadEnabled = enabled
+    autoDownloadEnabled = enabled
+
+    guard enabled else {
+      return
+    }
+
+    queueAutoDownloads(for: podcastsService.subscribedPodcasts)
+  }
+
+  func setAutoDownloadEpisodeLimit(_ limit: Int) {
+    podcastsService.autoDownloadEpisodeLimit = limit
+    autoDownloadEpisodeLimit = podcastsService.autoDownloadEpisodeLimit
+
+    guard autoDownloadEnabled else {
+      return
+    }
+
+    queueAutoDownloads(for: podcastsService.subscribedPodcasts)
+  }
+
+  func clearDownloads() {
+    podcastsService.clearDownloadedEpisodes()
+    refresh()
   }
 
   private func enableNotifications() {
@@ -144,5 +199,24 @@ final class SettingsViewModel: ObservableObject {
   private func saveNotificationsEnabled(_ enabled: Bool) {
     notificationsEnabled = enabled
     userDefaults.set(enabled, forKey: UserDefaults.notificationsEnabledKey)
+  }
+
+  private func queueAutoDownloads(for podcasts: [Podcast]) {
+    let limit = podcastsService.autoDownloadEpisodeLimit
+    podcasts.forEach { podcast in
+      networkingService.autoDownloadEpisodes(for: podcast, limit: limit) { [weak self] _ in
+        self?.refresh()
+      }
+    }
+  }
+
+  private func observeDownloads() {
+    downloadCompleteObserver = eventCenter.addObserver(
+      forName: .downloadComplete,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.refresh()
+    }
   }
 }

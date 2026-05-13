@@ -460,6 +460,10 @@ class Player: ObservableObject {
   }
 
   private func playbackURL(for episode: Episode) -> URL? {
+    if let url = podcastsService.downloadedPlaybackURL(for: episode) {
+      return url
+    }
+
     if let fileUrl = episode.fileUrl {
       if let url = URL(string: fileUrl), url.isFileURL, FileManager.default.fileExists(atPath: url.path) {
         return url

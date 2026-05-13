@@ -59,8 +59,19 @@ extension PodcastViewModel {
   }
   
   func subscribe() {
-    podcastsService.addPodcast(self.podcast)
+    let added = podcastsService.addPodcast(self.podcast)
     self.subscribed = true
+
+    guard added && podcastsService.autoDownloadEnabled else {
+      return
+    }
+
+    let limit = podcastsService.autoDownloadEpisodeLimit
+    if episodes.isEmpty {
+      networkingService.autoDownloadEpisodes(for: podcast, limit: limit)
+    } else {
+      networkingService.autoDownloadEpisodes(episodes, limit: limit)
+    }
   }
 
   func unsubscribe() {

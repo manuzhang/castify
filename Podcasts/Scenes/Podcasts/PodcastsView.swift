@@ -158,7 +158,7 @@ struct PodcastsView: View {
   }
 
   private var displayedEpisode: Episode? {
-    currentEpisode ?? player.queueEpisodes.first ?? podcastsViewModel.upNextEpisodes.first
+    currentEpisode ?? activeQueueEpisodes.first ?? podcastsViewModel.upNextEpisodes.first
   }
 
   private var isDisplayedEpisodePlaying: Bool {
@@ -167,7 +167,7 @@ struct PodcastsView: View {
 
   private func showUpNextQueue() {
     podcastsViewModel.updateUpNextEpisodes()
-    let activeQueue = player.queueEpisodes
+    let activeQueue = activeQueueEpisodes
     if !activeQueue.isEmpty {
       queueEpisodes = activeQueue
       isShowingInProgressQueue = false
@@ -183,9 +183,9 @@ struct PodcastsView: View {
 
     if isShowingInProgressQueue {
       podcastsViewModel.reorderUpNextEpisodes(episodes)
+    } else {
+      player.updateQueue(episodes)
     }
-
-    player.updateQueue(episodes)
   }
 
   private func togglePlayback(for episode: Episode? = nil) {
@@ -206,9 +206,13 @@ struct PodcastsView: View {
   }
 
   private func playFromQueue(_ episode: Episode) {
-    let episodes = player.queueEpisodes.isEmpty
+    let episodes = activeQueueEpisodes.isEmpty
       ? podcastsViewModel.upNextEpisodes
-      : player.queueEpisodes
+      : activeQueueEpisodes
     player.play(episode: episode, in: episodes.isEmpty ? [episode] : episodes)
+  }
+
+  private var activeQueueEpisodes: [Episode] {
+    currentEpisode == nil ? [] : player.queueEpisodes
   }
 }

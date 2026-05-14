@@ -146,13 +146,12 @@ class Player: ObservableObject {
 
   func updateQueue(_ episodes: [Episode]) {
     var playableEpisodes = episodes.filter({ playbackURL(for: $0) != nil })
-    guard !playableEpisodes.isEmpty else {
+    guard let current = current, !playableEpisodes.isEmpty else {
       return
     }
 
-    if let current = current, !playableEpisodes.contains(current) {
-      playableEpisodes.insert(current, at: 0)
-    }
+    playableEpisodes.removeAll(where: { $0 == current })
+    playableEpisodes.insert(current, at: 0)
 
     self.episodes = playableEpisodes
   }

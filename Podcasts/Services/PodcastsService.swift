@@ -87,6 +87,15 @@ final class PodcastsService {
     }
   }
 
+  var autoDownloadWifiOnly: Bool {
+    get {
+      UserDefaults.standard.bool(forKey: UserDefaults.autoDownloadWifiOnlyKey)
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: UserDefaults.autoDownloadWifiOnlyKey)
+    }
+  }
+
 }
 
 // MARK: - Methods

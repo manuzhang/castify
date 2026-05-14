@@ -46,6 +46,32 @@ struct SettingsView: View {
           }
         }
 
+        Section(header: Text(localization.text(.listeningStats))) {
+          HStack {
+            Image(systemName: "clock")
+            Text(localization.text(.totalListeningTime))
+            Spacer()
+            Text(viewModel.totalListeningTimeText)
+              .foregroundColor(.secondary)
+          }
+
+          HStack {
+            Image(systemName: "checkmark.circle")
+            Text(localization.text(.episodesFinished))
+            Spacer()
+            Text("\(viewModel.finishedEpisodeCount)")
+              .foregroundColor(.secondary)
+          }
+
+          HStack {
+            Image(systemName: "calendar")
+            Text(localization.text(.lastListened))
+            Spacer()
+            Text(viewModel.lastListenedText)
+              .foregroundColor(.secondary)
+          }
+        }
+
         Section(header: Text(localization.text(.downloads))) {
           Toggle(
             isOn: Binding(

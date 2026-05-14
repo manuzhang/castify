@@ -13,6 +13,9 @@ final class SettingsViewModel: ObservableObject {
   @Published private(set) var autoDownloadWifiOnly = false
   @Published private(set) var downloadedEpisodeCount = 0
   @Published private(set) var storageUsedText = ByteCountFormatter.string(fromByteCount: 0, countStyle: .file)
+  @Published private(set) var totalListeningTimeText = ""
+  @Published private(set) var finishedEpisodeCount = 0
+  @Published private(set) var lastListenedText = ""
 
   private let podcastsService: PodcastsService
   private let networkingService: NetworkingService
@@ -71,6 +74,7 @@ final class SettingsViewModel: ObservableObject {
     autoDownloadEpisodeLimit = podcastsService.autoDownloadEpisodeLimit
     autoDownloadWifiOnly = podcastsService.autoDownloadWifiOnly
     downloadedEpisodeCount = podcastsService.downloadedEpisodeCount()
+    refreshListeningStats()
     storageUsedText = ByteCountFormatter.string(
       fromByteCount: podcastsService.downloadedEpisodesStorageSize(),
       countStyle: .file
@@ -212,6 +216,13 @@ final class SettingsViewModel: ObservableObject {
   private func saveNotificationsEnabled(_ enabled: Bool) {
     notificationsEnabled = enabled
     userDefaults.set(enabled, forKey: UserDefaults.notificationsEnabledKey)
+  }
+
+  private func refreshListeningStats() {
+    let stats = podcastsService.listeningStats
+    totalListeningTimeText = localization.listeningDuration(seconds: stats.totalListeningTime)
+    finishedEpisodeCount = stats.finishedEpisodeCount
+    lastListenedText = stats.lastListenedAt?.formatMedium ?? localization.text(.never)
   }
 
   private func queueAutoDownloads(for podcasts: [Podcast]) {

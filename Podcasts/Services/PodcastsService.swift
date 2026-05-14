@@ -46,6 +46,18 @@ struct EpisodePlaybackState: Codable, Equatable {
   }
 }
 
+struct ListeningStats: Codable, Equatable {
+  static let empty = ListeningStats(
+    totalListeningTime: 0,
+    finishedEpisodeCount: 0,
+    lastListenedAt: nil
+  )
+
+  var totalListeningTime: TimeInterval
+  var finishedEpisodeCount: Int
+  var lastListenedAt: Date?
+}
+
 final class PodcastsService {
 
   static let defaultAutoDownloadEpisodeLimit = 3
@@ -58,6 +70,10 @@ final class PodcastsService {
 
   var downloadedEpisodes: [Episode] {
     fetchDownloadedEpisodes()
+  }
+
+  var listeningStats: ListeningStats {
+    fetchListeningStats()
   }
 
   var autoDownloadEnabled: Bool {
@@ -327,6 +343,24 @@ extension PodcastsService {
     updateInProgressEpisode(episode, state: state)
   }
 
+  func recordListeningTime(_ seconds: TimeInterval) {
+    guard seconds.isFinite && !seconds.isNaN && seconds > 0 else {
+      return
+    }
+
+    var stats = fetchListeningStats()
+    stats.totalListeningTime += seconds
+    stats.lastListenedAt = Date()
+    saveListeningStats(stats)
+  }
+
+  func recordFinishedEpisode() {
+    var stats = fetchListeningStats()
+    stats.finishedEpisodeCount += 1
+    stats.lastListenedAt = Date()
+    saveListeningStats(stats)
+  }
+
   func markEpisodePlayed(_ episode: Episode) {
     var states = episodePlaybackStates()
     let key = playbackStateKey(for: episode)
@@ -410,6 +444,28 @@ extension PodcastsService {
 
   fileprivate func fetchInProgressEpisodeOrder() -> [String] {
     UserDefaults.standard.stringArray(forKey: UserDefaults.inProgressEpisodeOrderKey) ?? []
+  }
+
+  fileprivate func fetchListeningStats() -> ListeningStats {
+    guard let data = UserDefaults.standard.data(forKey: UserDefaults.listeningStatsKey) else {
+      return .empty
+    }
+
+    do {
+      return try JSONDecoder().decode(ListeningStats.self, from: data)
+    } catch let decodeError {
+      print("Failed to decode listening stats:", decodeError)
+      return .empty
+    }
+  }
+
+  fileprivate func saveListeningStats(_ stats: ListeningStats) {
+    do {
+      let data = try JSONEncoder().encode(stats)
+      UserDefaults.standard.set(data, forKey: UserDefaults.listeningStatsKey)
+    } catch let encodeError {
+      print("Failed to encode listening stats:", encodeError)
+    }
   }
 
   fileprivate func saveInProgressEpisodeOrder(_ order: [String]) {

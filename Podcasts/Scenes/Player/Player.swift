@@ -267,6 +267,7 @@ class Player: ObservableObject {
 
   @objc private func didPlayToEnd() {
     if let episode = current {
+      podcastsService.recordFinishedEpisode()
       podcastsService.markEpisodePlayed(episode)
     }
 
@@ -292,7 +293,9 @@ class Player: ObservableObject {
     guard let episode = current else {
       return
     }
+    let previousElapsedTime = elapsedTime
     updateProgress(time: time)
+    recordListeningTime(from: previousElapsedTime, to: elapsedTime)
     episode.setProgress(progress: progress)
     podcastsService.savePlaybackPosition(
       for: episode,
@@ -474,6 +477,15 @@ class Player: ObservableObject {
     }
 
     progress = getProgress(time: time)
+  }
+
+  private func recordListeningTime(from previousTime: TimeInterval, to currentTime: TimeInterval) {
+    let seconds = currentTime - previousTime
+    guard seconds > 0 && seconds <= 120 else {
+      return
+    }
+
+    podcastsService.recordListeningTime(seconds)
   }
 
   private func validSeconds(from time: CMTime) -> TimeInterval {

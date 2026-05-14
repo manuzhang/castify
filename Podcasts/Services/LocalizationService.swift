@@ -74,6 +74,7 @@ enum AppText: String {
   case importing
   case downloads
   case autoDownloadEpisodes
+  case autoDownloadWifiOnly
   case episodesPerPodcast
   case storage
   case downloadedEpisodes
@@ -152,6 +153,7 @@ final class LocalizationService: ObservableObject {
       .importing: "Importing...",
       .downloads: "Downloads",
       .autoDownloadEpisodes: "Auto-download episodes",
+      .autoDownloadWifiOnly: "Only on Wi-Fi",
       .episodesPerPodcast: "Episodes per podcast",
       .storage: "Storage",
       .downloadedEpisodes: "Downloaded episodes",
@@ -221,6 +223,7 @@ final class LocalizationService: ObservableObject {
       .importing: "正在导入...",
       .downloads: "下载",
       .autoDownloadEpisodes: "自动下载单集",
+      .autoDownloadWifiOnly: "仅限 Wi-Fi",
       .episodesPerPodcast: "每个播客单集数",
       .storage: "存储",
       .downloadedEpisodes: "已下载单集",

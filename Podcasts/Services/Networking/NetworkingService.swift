@@ -3,11 +3,16 @@ import Foundation
 final class NetworkingService: NSObject {
 
   fileprivate var podcastsService: PodcastsService?
-  private lazy var downloadSession: URLSession = URLSession(
-    configuration: .default,
-    delegate: self,
-    delegateQueue: nil
-  )
+  private lazy var downloadSession: URLSession = {
+    let configuration = URLSessionConfiguration.default
+    configuration.waitsForConnectivity = true
+
+    return URLSession(
+      configuration: configuration,
+      delegate: self,
+      delegateQueue: nil
+    )
+  }()
   private var downloadProgressHandlers = [Int: (Progress) -> Void]()
   private var downloadCompletionHandlers = [Int: (URL?, Error?) -> Void]()
   private var downloadDestinations = [Int: URL]()
@@ -269,22 +274,27 @@ extension NetworkingService {
     let episodesToDownload = targetEpisodes.filter { episode in
       !(podcastsService?.episodeDownloaded(episode) ?? false)
     }
+    let allowsCellularAccess = !(podcastsService?.autoDownloadWifiOnly ?? false)
 
     episodesToDownload.forEach { episode in
-      downloadEpisode(episode) { _ in }
+      downloadEpisode(episode, allowsCellularAccess: allowsCellularAccess) { _ in }
     }
 
     return episodesToDownload.count
   }
 
-  func downloadEpisode(_ episode: Episode, _ handler: @escaping (Progress) -> Void) {
+  func downloadEpisode(_ episode: Episode,
+                       allowsCellularAccess: Bool = true,
+                       _ handler: @escaping (Progress) -> Void) {
     print("Downloading episode at stream url:", episode.streamUrl)
     guard let url = URL(string: episode.streamUrl) else {
       print("Invalid episode stream url: ", episode.streamUrl)
       return
     }
 
-    let task = downloadSession.downloadTask(with: url)
+    var request = URLRequest(url: url)
+    request.allowsCellularAccess = allowsCellularAccess
+    let task = downloadSession.downloadTask(with: request)
     let destination = destinationURL(for: episode, sourceURL: url)
     let taskIdentifier = task.taskIdentifier
 

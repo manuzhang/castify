@@ -10,6 +10,7 @@ final class SettingsViewModel: ObservableObject {
   @Published private(set) var subscriptionCount = 0
   @Published private(set) var autoDownloadEnabled = false
   @Published private(set) var autoDownloadEpisodeLimit = PodcastsService.defaultAutoDownloadEpisodeLimit
+  @Published private(set) var autoDownloadWifiOnly = false
   @Published private(set) var downloadedEpisodeCount = 0
   @Published private(set) var storageUsedText = ByteCountFormatter.string(fromByteCount: 0, countStyle: .file)
 
@@ -68,6 +69,7 @@ final class SettingsViewModel: ObservableObject {
     subscriptionCount = podcastsService.subscribedPodcasts.count
     autoDownloadEnabled = podcastsService.autoDownloadEnabled
     autoDownloadEpisodeLimit = podcastsService.autoDownloadEpisodeLimit
+    autoDownloadWifiOnly = podcastsService.autoDownloadWifiOnly
     downloadedEpisodeCount = podcastsService.downloadedEpisodeCount()
     storageUsedText = ByteCountFormatter.string(
       fromByteCount: podcastsService.downloadedEpisodesStorageSize(),
@@ -132,6 +134,17 @@ final class SettingsViewModel: ObservableObject {
     autoDownloadEnabled = enabled
 
     guard enabled else {
+      return
+    }
+
+    queueAutoDownloads(for: podcastsService.subscribedPodcasts)
+  }
+
+  func setAutoDownloadWifiOnly(_ wifiOnly: Bool) {
+    podcastsService.autoDownloadWifiOnly = wifiOnly
+    autoDownloadWifiOnly = wifiOnly
+
+    guard autoDownloadEnabled else {
       return
     }
 

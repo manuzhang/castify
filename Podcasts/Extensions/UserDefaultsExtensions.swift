@@ -19,5 +19,6 @@ extension UserDefaults {
   static let inProgressEpisodeOrderKey = "inProgressEpisodeOrderKey"
   static let autoDownloadEnabledKey = "autoDownloadEnabledKey"
   static let autoDownloadEpisodeLimitKey = "autoDownloadEpisodeLimitKey"
+  static let autoDownloadWifiOnlyKey = "autoDownloadWifiOnlyKey"
 
 }

@@ -60,6 +60,20 @@ struct SettingsView: View {
             }
           )
 
+          Toggle(
+            isOn: Binding(
+              get: { self.viewModel.autoDownloadWifiOnly },
+              set: { self.viewModel.setAutoDownloadWifiOnly($0) }
+            ),
+            label: {
+              HStack {
+                Image(systemName: "wifi")
+                Text(localization.text(.autoDownloadWifiOnly))
+              }
+            }
+          )
+          .disabled(!viewModel.autoDownloadEnabled)
+
           Stepper(
             value: Binding(
               get: { self.viewModel.autoDownloadEpisodeLimit },

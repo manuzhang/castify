@@ -46,6 +46,7 @@ extension PodcastViewModel {
       case .success(let feed):
         self.description = feed.description
         self.episodes = feed.episodes
+        self.podcastsService.cacheInProgressEpisodes(feed.episodes)
         completion()
       case .failure(let error):
         self.errorMessage = error.localizedDescription

@@ -242,7 +242,12 @@ struct UpNextQueueSheet: View {
     self.onEpisodeSelected = onEpisodeSelected
     self.onReorder = onReorder
     self.onDismiss = onDismiss
-    _episodes = State(initialValue: episodes)
+
+    if let current = current {
+      _episodes = State(initialValue: episodes.filter({ $0 != current }))
+    } else {
+      _episodes = State(initialValue: episodes)
+    }
   }
 
   var body: some View {
@@ -259,7 +264,7 @@ struct UpNextQueueSheet: View {
 
         List {
           Button(action: {
-            self.onPlayAll(self.episodes)
+            self.onPlayAll(self.queueEpisodes)
           }) {
             HStack {
               Image(systemName: "play.fill")
@@ -270,18 +275,13 @@ struct UpNextQueueSheet: View {
 
           ForEach(episodes, id: \.self) { episode in
             Button(action: {
-              self.onEpisodeSelected(episode, self.episodes)
+              self.onEpisodeSelected(episode, self.queueEpisodes)
             }) {
               HStack(spacing: 10) {
                 EpisodeRow(
                   episode: episode,
                   playbackState: self.podcastsService.playbackState(for: episode)
                 )
-
-                if self.current == episode {
-                  Image(systemName: "speaker.wave.2.fill")
-                    .foregroundColor(.blue)
-                }
               }
             }
             .buttonStyle(PlainButtonStyle())
@@ -298,9 +298,17 @@ struct UpNextQueueSheet: View {
     }
   }
 
+  private var queueEpisodes: [Episode] {
+    guard let current = current else {
+      return episodes
+    }
+
+    return [current] + episodes.filter({ $0 != current })
+  }
+
   private func moveEpisodes(from source: IndexSet, to destination: Int) {
     episodes.move(fromOffsets: source, toOffset: destination)
-    onReorder(episodes)
+    onReorder(queueEpisodes)
   }
 }
 

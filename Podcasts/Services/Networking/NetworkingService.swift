@@ -3,11 +3,16 @@ import Foundation
 final class NetworkingService: NSObject {
 
   fileprivate var podcastsService: PodcastsService?
-  private lazy var downloadSession: URLSession = URLSession(
-    configuration: .default,
-    delegate: self,
-    delegateQueue: nil
-  )
+  private lazy var downloadSession: URLSession = {
+    let configuration = URLSessionConfiguration.default
+    configuration.waitsForConnectivity = true
+
+    return URLSession(
+      configuration: configuration,
+      delegate: self,
+      delegateQueue: nil
+    )
+  }()
   private var downloadProgressHandlers = [Int: (Progress) -> Void]()
   private var downloadCompletionHandlers = [Int: (URL?, Error?) -> Void]()
   private var downloadDestinations = [Int: URL]()

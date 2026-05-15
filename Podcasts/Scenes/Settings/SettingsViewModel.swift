@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import UserNotifications
 
@@ -26,6 +27,7 @@ final class SettingsViewModel: ObservableObject {
   private let localization: LocalizationService
   private var downloadCompleteObserver: NSObjectProtocol?
   private var listeningStatsObserver: NSObjectProtocol?
+  private var languageObserver: AnyCancellable?
 
   init(podcastsService: PodcastsService = PodcastsService(),
        networkingService: NetworkingService = NetworkingService(),
@@ -45,6 +47,7 @@ final class SettingsViewModel: ObservableObject {
     refresh()
     observeDownloads()
     observeListeningStats()
+    observeLanguageChanges()
   }
 
   deinit {
@@ -54,6 +57,7 @@ final class SettingsViewModel: ObservableObject {
     if let listeningStatsObserver = listeningStatsObserver {
       eventCenter.removeObserver(listeningStatsObserver)
     }
+    languageObserver?.cancel()
   }
 
   var notificationStatusMessage: String? {
@@ -257,5 +261,15 @@ final class SettingsViewModel: ObservableObject {
     ) { [weak self] _ in
       self?.refreshListeningStats()
     }
+  }
+
+  private func observeLanguageChanges() {
+    languageObserver = localization.$language
+      .dropFirst()
+      .sink { [weak self] _ in
+        DispatchQueue.main.async {
+          self?.refreshListeningStats()
+        }
+      }
   }
 }

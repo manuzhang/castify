@@ -20,5 +20,6 @@ extension UserDefaults {
   static let autoDownloadEnabledKey = "autoDownloadEnabledKey"
   static let autoDownloadEpisodeLimitKey = "autoDownloadEpisodeLimitKey"
   static let autoDownloadWifiOnlyKey = "autoDownloadWifiOnlyKey"
+  static let listeningStatsKey = "listeningStatsKey"
 
 }

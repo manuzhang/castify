@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import UserNotifications
 
@@ -13,6 +14,9 @@ final class SettingsViewModel: ObservableObject {
   @Published private(set) var autoDownloadWifiOnly = false
   @Published private(set) var downloadedEpisodeCount = 0
   @Published private(set) var storageUsedText = ByteCountFormatter.string(fromByteCount: 0, countStyle: .file)
+  @Published private(set) var totalListeningTimeText = ""
+  @Published private(set) var finishedEpisodeCount = 0
+  @Published private(set) var lastListenedText = ""
 
   private let podcastsService: PodcastsService
   private let networkingService: NetworkingService
@@ -22,6 +26,8 @@ final class SettingsViewModel: ObservableObject {
   private let userDefaults: UserDefaults
   private let localization: LocalizationService
   private var downloadCompleteObserver: NSObjectProtocol?
+  private var listeningStatsObserver: NSObjectProtocol?
+  private var languageObserver: AnyCancellable?
 
   init(podcastsService: PodcastsService = PodcastsService(),
        networkingService: NetworkingService = NetworkingService(),
@@ -40,12 +46,18 @@ final class SettingsViewModel: ObservableObject {
     self.notificationsEnabled = userDefaults.bool(forKey: UserDefaults.notificationsEnabledKey)
     refresh()
     observeDownloads()
+    observeListeningStats()
+    observeLanguageChanges()
   }
 
   deinit {
     if let downloadCompleteObserver = downloadCompleteObserver {
       eventCenter.removeObserver(downloadCompleteObserver)
     }
+    if let listeningStatsObserver = listeningStatsObserver {
+      eventCenter.removeObserver(listeningStatsObserver)
+    }
+    languageObserver?.cancel()
   }
 
   var notificationStatusMessage: String? {
@@ -71,6 +83,7 @@ final class SettingsViewModel: ObservableObject {
     autoDownloadEpisodeLimit = podcastsService.autoDownloadEpisodeLimit
     autoDownloadWifiOnly = podcastsService.autoDownloadWifiOnly
     downloadedEpisodeCount = podcastsService.downloadedEpisodeCount()
+    refreshListeningStats()
     storageUsedText = ByteCountFormatter.string(
       fromByteCount: podcastsService.downloadedEpisodesStorageSize(),
       countStyle: .file
@@ -214,6 +227,13 @@ final class SettingsViewModel: ObservableObject {
     userDefaults.set(enabled, forKey: UserDefaults.notificationsEnabledKey)
   }
 
+  private func refreshListeningStats() {
+    let stats = podcastsService.listeningStats
+    totalListeningTimeText = localization.listeningDuration(seconds: stats.totalListeningTime)
+    finishedEpisodeCount = stats.finishedEpisodeCount
+    lastListenedText = stats.lastListenedAt?.formatMedium ?? localization.text(.never)
+  }
+
   private func queueAutoDownloads(for podcasts: [Podcast]) {
     let limit = podcastsService.autoDownloadEpisodeLimit
     podcasts.forEach { podcast in
@@ -231,5 +251,25 @@ final class SettingsViewModel: ObservableObject {
     ) { [weak self] _ in
       self?.refresh()
     }
+  }
+
+  private func observeListeningStats() {
+    listeningStatsObserver = eventCenter.addObserver(
+      forName: .listeningStatsDidChange,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.refreshListeningStats()
+    }
+  }
+
+  private func observeLanguageChanges() {
+    languageObserver = localization.$language
+      .dropFirst()
+      .sink { [weak self] _ in
+        DispatchQueue.main.async {
+          self?.refreshListeningStats()
+        }
+      }
   }
 }

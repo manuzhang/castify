@@ -72,6 +72,11 @@ enum AppText: String {
   case language
   case importOPML
   case importing
+  case listeningStats
+  case totalListeningTime
+  case episodesFinished
+  case lastListened
+  case never
   case downloads
   case autoDownloadEpisodes
   case autoDownloadWifiOnly
@@ -151,6 +156,11 @@ final class LocalizationService: ObservableObject {
       .language: "Language",
       .importOPML: "Import OPML",
       .importing: "Importing...",
+      .listeningStats: "Listening Stats",
+      .totalListeningTime: "Total listening time",
+      .episodesFinished: "Episodes finished",
+      .lastListened: "Last listened",
+      .never: "Never",
       .downloads: "Downloads",
       .autoDownloadEpisodes: "Auto-download episodes",
       .autoDownloadWifiOnly: "Only on Wi-Fi",
@@ -221,6 +231,11 @@ final class LocalizationService: ObservableObject {
       .language: "语言",
       .importOPML: "导入 OPML",
       .importing: "正在导入...",
+      .listeningStats: "收听统计",
+      .totalListeningTime: "总收听时长",
+      .episodesFinished: "已播完单集",
+      .lastListened: "上次收听",
+      .never: "从未",
       .downloads: "下载",
       .autoDownloadEpisodes: "自动下载单集",
       .autoDownloadWifiOnly: "仅限 Wi-Fi",
@@ -331,5 +346,13 @@ final class LocalizationService: ObservableObject {
 
       return "\(minutes)分钟"
     }
+  }
+
+  func listeningDuration(seconds: TimeInterval) -> String {
+    let totalSeconds = max(0, Int(seconds))
+    let hours = totalSeconds / 3600
+    let minutes = (totalSeconds % 3600) / 60
+
+    return podcastDuration(hours: hours, minutes: minutes)
   }
 }

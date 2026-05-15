@@ -25,6 +25,7 @@ final class SettingsViewModel: ObservableObject {
   private let userDefaults: UserDefaults
   private let localization: LocalizationService
   private var downloadCompleteObserver: NSObjectProtocol?
+  private var listeningStatsObserver: NSObjectProtocol?
 
   init(podcastsService: PodcastsService = PodcastsService(),
        networkingService: NetworkingService = NetworkingService(),
@@ -43,11 +44,15 @@ final class SettingsViewModel: ObservableObject {
     self.notificationsEnabled = userDefaults.bool(forKey: UserDefaults.notificationsEnabledKey)
     refresh()
     observeDownloads()
+    observeListeningStats()
   }
 
   deinit {
     if let downloadCompleteObserver = downloadCompleteObserver {
       eventCenter.removeObserver(downloadCompleteObserver)
+    }
+    if let listeningStatsObserver = listeningStatsObserver {
+      eventCenter.removeObserver(listeningStatsObserver)
     }
   }
 
@@ -241,6 +246,16 @@ final class SettingsViewModel: ObservableObject {
       queue: .main
     ) { [weak self] _ in
       self?.refresh()
+    }
+  }
+
+  private func observeListeningStats() {
+    listeningStatsObserver = eventCenter.addObserver(
+      forName: .listeningStatsDidChange,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.refreshListeningStats()
     }
   }
 }

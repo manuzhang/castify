@@ -463,6 +463,7 @@ extension PodcastsService {
     do {
       let data = try JSONEncoder().encode(stats)
       UserDefaults.standard.set(data, forKey: UserDefaults.listeningStatsKey)
+      NotificationCenter.default.post(name: .listeningStatsDidChange, object: self)
     } catch let encodeError {
       print("Failed to encode listening stats:", encodeError)
     }

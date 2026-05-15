@@ -12,4 +12,5 @@ extension Notification.Name {
   static let downloadProgress = NSNotification.Name("downloadProgress")
   static let downloadComplete = NSNotification.Name("downloadComplete")
   static let listeningStatsDidChange = NSNotification.Name("listeningStatsDidChange")
+  static let subscribedPodcastsDidChange = NSNotification.Name("subscribedPodcastsDidChange")
 }

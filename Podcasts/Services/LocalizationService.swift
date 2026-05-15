@@ -97,6 +97,16 @@ enum AppText: String {
   case importedPodcast
   case podcastFeedUnavailable
   case untitledEpisode
+  case githubSync
+  case githubToken
+  case saveGitHubToken
+  case automaticGitHubSync
+  case githubTokenSaved
+  case githubTokenRequired
+  case githubTokenInvalid
+  case githubSyncInvalidURL
+  case githubSyncInvalidResponse
+  case noSubscribedPodcastsToSync
 }
 
 final class LocalizationService: ObservableObject {
@@ -180,7 +190,17 @@ final class LocalizationService: ObservableObject {
       .invalidOPMLFile: "The selected file is not a valid OPML file",
       .importedPodcast: "Imported Podcast",
       .podcastFeedUnavailable: "This podcast feed is not available",
-      .untitledEpisode: "Untitled Episode"
+      .untitledEpisode: "Untitled Episode",
+      .githubSync: "GitHub Sync",
+      .githubToken: "GitHub token",
+      .saveGitHubToken: "Save GitHub Token",
+      .automaticGitHubSync: "Sync subscription changes",
+      .githubTokenSaved: "GitHub token saved",
+      .githubTokenRequired: "Save a GitHub token before syncing",
+      .githubTokenInvalid: "Saved GitHub token is invalid",
+      .githubSyncInvalidURL: "GitHub sync URL is invalid",
+      .githubSyncInvalidResponse: "GitHub returned an invalid response",
+      .noSubscribedPodcastsToSync: "No subscribed podcasts to sync"
     ],
     .chinese: [
       .podcasts: "播客",
@@ -255,7 +275,17 @@ final class LocalizationService: ObservableObject {
       .invalidOPMLFile: "所选文件不是有效的 OPML 文件",
       .importedPodcast: "导入的播客",
       .podcastFeedUnavailable: "此播客订阅源不可用",
-      .untitledEpisode: "未命名单集"
+      .untitledEpisode: "未命名单集",
+      .githubSync: "GitHub 同步",
+      .githubToken: "GitHub 令牌",
+      .saveGitHubToken: "保存 GitHub 令牌",
+      .automaticGitHubSync: "同步订阅变化",
+      .githubTokenSaved: "GitHub 令牌已保存",
+      .githubTokenRequired: "同步前请先保存 GitHub 令牌",
+      .githubTokenInvalid: "已保存的 GitHub 令牌无效",
+      .githubSyncInvalidURL: "GitHub 同步地址无效",
+      .githubSyncInvalidResponse: "GitHub 返回了无效响应",
+      .noSubscribedPodcastsToSync: "没有可同步的订阅播客"
     ]
   ]
 
@@ -354,5 +384,33 @@ final class LocalizationService: ObservableObject {
     let minutes = (totalSeconds % 3600) / 60
 
     return podcastDuration(hours: hours, minutes: minutes)
+  }
+
+  func githubSyncSuccess(count: Int) -> String {
+    switch language {
+    case .english:
+      let noun = count == 1 ? "subscription" : "subscriptions"
+      return "Synced \(count) \(noun) to GitHub"
+    case .chinese:
+      return "已同步 \(count) 个订阅到 GitHub"
+    }
+  }
+
+  func githubSyncError(statusCode: Int, message: String) -> String {
+    switch language {
+    case .english:
+      return "GitHub sync failed (\(statusCode)): \(message)"
+    case .chinese:
+      return "GitHub 同步失败（\(statusCode)）：\(message)"
+    }
+  }
+
+  func keychainError(status: OSStatus) -> String {
+    switch language {
+    case .english:
+      return "Keychain operation failed (\(status))"
+    case .chinese:
+      return "钥匙串操作失败（\(status)）"
+    }
   }
 }

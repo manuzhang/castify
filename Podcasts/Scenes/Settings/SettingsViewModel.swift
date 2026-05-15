@@ -9,6 +9,10 @@ final class SettingsViewModel: ObservableObject {
   @Published private(set) var notificationStatus: UNAuthorizationStatus = .notDetermined
   @Published private(set) var notificationsEnabled = false
   @Published private(set) var subscriptionCount = 0
+  @Published var githubTokenInput = ""
+  @Published private(set) var githubTokenSaved = false
+  @Published private(set) var githubSyncMessage: String?
+  @Published private(set) var githubAutoSyncEnabled = false
   @Published private(set) var autoDownloadEnabled = false
   @Published private(set) var autoDownloadEpisodeLimit = PodcastsService.defaultAutoDownloadEpisodeLimit
   @Published private(set) var autoDownloadWifiOnly = false
@@ -21,6 +25,8 @@ final class SettingsViewModel: ObservableObject {
   private let podcastsService: PodcastsService
   private let networkingService: NetworkingService
   private let opmlImportService: OPMLImportService
+  private let keychainService: KeychainService
+  private let autoGitHubSubscriptionSyncService: AutoGitHubSubscriptionSyncService
   private let notificationCenter: UNUserNotificationCenter
   private let eventCenter: NotificationCenter
   private let userDefaults: UserDefaults
@@ -32,6 +38,8 @@ final class SettingsViewModel: ObservableObject {
   init(podcastsService: PodcastsService = PodcastsService(),
        networkingService: NetworkingService = NetworkingService(),
        opmlImportService: OPMLImportService = OPMLImportService(),
+       keychainService: KeychainService = KeychainService(),
+       autoGitHubSubscriptionSyncService: AutoGitHubSubscriptionSyncService = .shared,
        notificationCenter: UNUserNotificationCenter = .current(),
        eventCenter: NotificationCenter = .default,
        userDefaults: UserDefaults = .standard,
@@ -39,11 +47,14 @@ final class SettingsViewModel: ObservableObject {
     self.podcastsService = podcastsService
     self.networkingService = networkingService
     self.opmlImportService = opmlImportService
+    self.keychainService = keychainService
+    self.autoGitHubSubscriptionSyncService = autoGitHubSubscriptionSyncService
     self.notificationCenter = notificationCenter
     self.eventCenter = eventCenter
     self.userDefaults = userDefaults
     self.localization = localization
     self.notificationsEnabled = userDefaults.bool(forKey: UserDefaults.notificationsEnabledKey)
+    self.githubAutoSyncEnabled = userDefaults.bool(forKey: UserDefaults.githubAutoSyncEnabledKey)
     refresh()
     observeDownloads()
     observeListeningStats()
@@ -79,6 +90,7 @@ final class SettingsViewModel: ObservableObject {
 
   func refresh() {
     subscriptionCount = podcastsService.subscribedPodcasts.count
+    refreshGitHubTokenState()
     autoDownloadEnabled = podcastsService.autoDownloadEnabled
     autoDownloadEpisodeLimit = podcastsService.autoDownloadEpisodeLimit
     autoDownloadWifiOnly = podcastsService.autoDownloadWifiOnly
@@ -128,6 +140,39 @@ final class SettingsViewModel: ObservableObject {
           self.refresh()
         }
       }
+    }
+  }
+
+  func saveGitHubToken() {
+    let token = githubTokenInput.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !token.isEmpty else {
+      githubSyncMessage = localization.text(.githubTokenRequired)
+      return
+    }
+
+    do {
+      try keychainService.saveToken(token)
+      githubTokenInput = ""
+      githubTokenSaved = true
+      setGitHubAutoSyncEnabled(true)
+      githubSyncMessage = localization.text(.githubTokenSaved)
+    } catch {
+      githubSyncMessage = error.localizedDescription
+      refreshGitHubTokenState()
+    }
+  }
+
+  func setGitHubAutoSyncEnabled(_ enabled: Bool) {
+    guard githubTokenSaved || !enabled else {
+      githubSyncMessage = localization.text(.githubTokenRequired)
+      return
+    }
+
+    githubAutoSyncEnabled = enabled
+    userDefaults.set(enabled, forKey: UserDefaults.githubAutoSyncEnabledKey)
+
+    if enabled {
+      autoGitHubSubscriptionSyncService.syncSoon()
     }
   }
 
@@ -219,6 +264,13 @@ final class SettingsViewModel: ObservableObject {
           self?.saveNotificationsEnabled(false)
         }
       }
+    }
+  }
+
+  private func refreshGitHubTokenState() {
+    githubTokenSaved = (try? keychainService.loadToken()) != nil
+    if !githubTokenSaved && githubAutoSyncEnabled {
+      setGitHubAutoSyncEnabled(false)
     }
   }
 

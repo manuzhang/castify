@@ -42,6 +42,10 @@
 		C4B1000126B1000000000001 /* PodcastBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4B1000226B1000000000002 /* PodcastBrowserView.swift */; };
 		C4B1000326B1000000000003 /* PodcastBrowserViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4B1000426B1000000000004 /* PodcastBrowserViewModel.swift */; };
 		C5A0000126C0000000000001 /* OPMLImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0000226C0000000000002 /* OPMLImportService.swift */; };
+		C5A0000C26C000000000000C /* OPMLExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0000D26C000000000000D /* OPMLExportService.swift */; };
+		C5A0000E26C000000000000E /* GitHubSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0000F26C000000000000F /* GitHubSyncService.swift */; };
+		C5A0001026C0000000000010 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0001126C0000000000011 /* KeychainService.swift */; };
+		C5A0001226C0000000000012 /* AutoGitHubSubscriptionSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0001326C0000000000013 /* AutoGitHubSubscriptionSyncService.swift */; };
 		C6A0000126D0000000000001 /* LocalizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6A0000226D0000000000002 /* LocalizationService.swift */; };
 		C5A0000326C0000000000003 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0000426C0000000000004 /* SettingsView.swift */; };
 		C5A0000526C0000000000005 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0000626C0000000000006 /* SettingsViewModel.swift */; };
@@ -105,6 +109,10 @@
 		C4B1000226B1000000000002 /* PodcastBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastBrowserView.swift; sourceTree = "<group>"; };
 		C4B1000426B1000000000004 /* PodcastBrowserViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastBrowserViewModel.swift; sourceTree = "<group>"; };
 		C5A0000226C0000000000002 /* OPMLImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OPMLImportService.swift; path = Services/OPMLImportService.swift; sourceTree = "<group>"; };
+		C5A0000D26C000000000000D /* OPMLExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OPMLExportService.swift; path = Services/OPMLExportService.swift; sourceTree = "<group>"; };
+		C5A0000F26C000000000000F /* GitHubSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GitHubSyncService.swift; path = Services/GitHubSyncService.swift; sourceTree = "<group>"; };
+		C5A0001126C0000000000011 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeychainService.swift; path = Services/KeychainService.swift; sourceTree = "<group>"; };
+		C5A0001326C0000000000013 /* AutoGitHubSubscriptionSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AutoGitHubSubscriptionSyncService.swift; path = Services/AutoGitHubSubscriptionSyncService.swift; sourceTree = "<group>"; };
 		C6A0000226D0000000000002 /* LocalizationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LocalizationService.swift; path = Services/LocalizationService.swift; sourceTree = "<group>"; };
 		C5A0000426C0000000000004 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		C5A0000626C0000000000006 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
@@ -207,6 +215,10 @@
 				3C9711354485994B0C262693 /* NetworkingService.swift */,
 				3C971723CE2D21838CA28A17 /* PodcastsService.swift */,
 				C5A0000226C0000000000002 /* OPMLImportService.swift */,
+				C5A0000D26C000000000000D /* OPMLExportService.swift */,
+				C5A0000F26C000000000000F /* GitHubSyncService.swift */,
+				C5A0001126C0000000000011 /* KeychainService.swift */,
+				C5A0001326C0000000000013 /* AutoGitHubSubscriptionSyncService.swift */,
 				C6A0000226D0000000000002 /* LocalizationService.swift */,
 				3C971F48BAFFB74A37D211A9 /* StringExtensions.swift */,
 				3C9712724BA85E2C41B03698 /* RSSFeedExtensions.swift */,
@@ -460,6 +472,10 @@
 				3C971E5F08C879227D844941 /* NetworkingService.swift in Sources */,
 				3C97129C61CC1A955B95A065 /* PodcastsService.swift in Sources */,
 				C5A0000126C0000000000001 /* OPMLImportService.swift in Sources */,
+				C5A0000C26C000000000000C /* OPMLExportService.swift in Sources */,
+				C5A0000E26C000000000000E /* GitHubSyncService.swift in Sources */,
+				C5A0001026C0000000000010 /* KeychainService.swift in Sources */,
+				C5A0001226C0000000000012 /* AutoGitHubSubscriptionSyncService.swift in Sources */,
 				C6A0000126D0000000000001 /* LocalizationService.swift in Sources */,
 				3C97138F52C25CAD48A3B646 /* SearchResult.swift in Sources */,
 				3C9710E76C31464CC200DFD2 /* StringExtensions.swift in Sources */,

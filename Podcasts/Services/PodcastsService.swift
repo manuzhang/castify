@@ -147,22 +147,28 @@ extension PodcastsService {
     }
 
     podcasts.append(podcast)
-
-    do {
-      let data = try JSONEncoder().encode(podcasts)
-      UserDefaults.standard.set(data, forKey: UserDefaults.subscribedPodcastsKey)
-      return true
-    } catch let error {
-      print("Failed to add podcast: " + podcast.trackName, error)
-      return false
-    }
+    return saveSubscribedPodcasts(podcasts, failureMessage: "Failed to add podcast: " + podcast.trackName)
   }
 
   @discardableResult
   func addPodcasts(_ podcasts: [Podcast]) -> Int {
-    podcasts.reduce(0) { count, podcast in
-      addPodcast(podcast) ? count + 1 : count
+    var savedPodcasts = subscribedPodcasts
+    var addedCount = 0
+
+    podcasts.forEach { podcast in
+      guard !savedPodcasts.contains(where: { matches($0, podcast) }) else {
+        return
+      }
+
+      savedPodcasts.append(podcast)
+      addedCount += 1
     }
+
+    guard addedCount > 0 else {
+      return 0
+    }
+
+    return saveSubscribedPodcasts(savedPodcasts, failureMessage: "Failed to add podcasts") ? addedCount : 0
   }
 
   func deletePodcast(_ podcast: Podcast) {
@@ -171,12 +177,11 @@ extension PodcastsService {
       !matches(pod, podcast)
     }
 
-    do {
-      let data = try JSONEncoder().encode(filteredPodcasts)
-      UserDefaults.standard.set(data, forKey: UserDefaults.subscribedPodcastsKey)
-    } catch let error {
-      print("Failed to delete podcast: " + podcast.trackName, error)
+    guard filteredPodcasts.count != podcasts.count else {
+      return
     }
+
+    _ = saveSubscribedPodcasts(filteredPodcasts, failureMessage: "Failed to delete podcast: " + podcast.trackName)
   }
 
   func episodeDownloaded(_ episode: Episode) -> Bool {
@@ -620,6 +625,18 @@ extension PodcastsService {
 
     let remaining = duration - position
     return remaining <= 30 || position / duration >= 0.95
+  }
+
+  private func saveSubscribedPodcasts(_ podcasts: [Podcast], failureMessage: String) -> Bool {
+    do {
+      let data = try JSONEncoder().encode(podcasts)
+      UserDefaults.standard.set(data, forKey: UserDefaults.subscribedPodcastsKey)
+      NotificationCenter.default.post(name: .subscribedPodcastsDidChange, object: self)
+      return true
+    } catch let error {
+      print(failureMessage, error)
+      return false
+    }
   }
 
 }

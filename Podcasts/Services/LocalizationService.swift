@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import Security
 
 enum AppLanguage: String, CaseIterable, Identifiable {
   case english = "en"

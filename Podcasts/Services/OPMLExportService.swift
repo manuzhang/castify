@@ -15,9 +15,6 @@ final class OPMLExportService {
 
   func export(podcasts: [Podcast]) throws -> Data {
     let podcastsWithFeeds = podcasts.filter { !$0.feedUrl.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-    guard !podcastsWithFeeds.isEmpty else {
-      throw OPMLExportError.noSubscriptions
-    }
 
     var lines = [
       "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",

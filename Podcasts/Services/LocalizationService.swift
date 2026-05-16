@@ -101,6 +101,7 @@ enum AppText: String {
   case githubToken
   case saveGitHubToken
   case automaticGitHubSync
+  case githubLastSync
   case githubTokenSaved
   case githubTokenRequired
   case githubTokenInvalid
@@ -195,6 +196,7 @@ final class LocalizationService: ObservableObject {
       .githubToken: "GitHub token",
       .saveGitHubToken: "Save GitHub Token",
       .automaticGitHubSync: "Sync subscription changes",
+      .githubLastSync: "Last sync",
       .githubTokenSaved: "GitHub token saved",
       .githubTokenRequired: "Save a GitHub token before syncing",
       .githubTokenInvalid: "Saved GitHub token is invalid",
@@ -280,6 +282,7 @@ final class LocalizationService: ObservableObject {
       .githubToken: "GitHub 令牌",
       .saveGitHubToken: "保存 GitHub 令牌",
       .automaticGitHubSync: "同步订阅变化",
+      .githubLastSync: "上次同步",
       .githubTokenSaved: "GitHub 令牌已保存",
       .githubTokenRequired: "同步前请先保存 GitHub 令牌",
       .githubTokenInvalid: "已保存的 GitHub 令牌无效",

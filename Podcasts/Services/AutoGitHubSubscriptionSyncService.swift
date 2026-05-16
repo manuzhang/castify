@@ -106,6 +106,8 @@ final class AutoGitHubSubscriptionSyncService {
 
         switch result {
         case .success:
+          self.userDefaults.set(Date(), forKey: UserDefaults.githubLastSyncAtKey)
+          NotificationCenter.default.post(name: .githubSubscriptionSyncDidComplete, object: self)
           print("Automatic GitHub subscription sync completed")
         case .failure(let error):
           print("Automatic GitHub subscription sync failed:", error.localizedDescription)

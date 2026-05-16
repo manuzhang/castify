@@ -9,6 +9,14 @@ extension Date {
     return formatter.string(from: self)
   }
 
+  var formatMediumDateTime: String {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .short
+    formatter.locale = Locale(identifier: LocalizationService.shared.localeIdentifier)
+    return formatter.string(from: self)
+  }
+
 }
 
 extension TimeInterval {

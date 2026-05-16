@@ -173,6 +173,14 @@ struct SettingsView: View {
           )
           .disabled(!viewModel.githubTokenSaved)
 
+          HStack {
+            Image(systemName: "clock.arrow.circlepath")
+            Text(localization.text(.githubLastSync))
+            Spacer()
+            Text(viewModel.githubLastSyncText)
+              .foregroundColor(.secondary)
+          }
+
           if let message = viewModel.githubSyncMessage {
             Text(message)
               .font(.subheadline)

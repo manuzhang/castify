@@ -13,6 +13,7 @@ final class SettingsViewModel: ObservableObject {
   @Published private(set) var githubTokenSaved = false
   @Published private(set) var githubSyncMessage: String?
   @Published private(set) var githubAutoSyncEnabled = false
+  @Published private(set) var githubLastSyncText = ""
   @Published private(set) var autoDownloadEnabled = false
   @Published private(set) var autoDownloadEpisodeLimit = PodcastsService.defaultAutoDownloadEpisodeLimit
   @Published private(set) var autoDownloadWifiOnly = false
@@ -33,6 +34,7 @@ final class SettingsViewModel: ObservableObject {
   private let localization: LocalizationService
   private var downloadCompleteObserver: NSObjectProtocol?
   private var listeningStatsObserver: NSObjectProtocol?
+  private var githubSyncObserver: NSObjectProtocol?
   private var languageObserver: AnyCancellable?
 
   init(podcastsService: PodcastsService = PodcastsService(),
@@ -58,6 +60,7 @@ final class SettingsViewModel: ObservableObject {
     refresh()
     observeDownloads()
     observeListeningStats()
+    observeGitHubSync()
     observeLanguageChanges()
   }
 
@@ -67,6 +70,9 @@ final class SettingsViewModel: ObservableObject {
     }
     if let listeningStatsObserver = listeningStatsObserver {
       eventCenter.removeObserver(listeningStatsObserver)
+    }
+    if let githubSyncObserver = githubSyncObserver {
+      eventCenter.removeObserver(githubSyncObserver)
     }
     languageObserver?.cancel()
   }
@@ -91,6 +97,7 @@ final class SettingsViewModel: ObservableObject {
   func refresh() {
     subscriptionCount = podcastsService.subscribedPodcasts.count
     refreshGitHubTokenState()
+    refreshGitHubLastSync()
     autoDownloadEnabled = podcastsService.autoDownloadEnabled
     autoDownloadEpisodeLimit = podcastsService.autoDownloadEpisodeLimit
     autoDownloadWifiOnly = podcastsService.autoDownloadWifiOnly
@@ -286,6 +293,11 @@ final class SettingsViewModel: ObservableObject {
     lastListenedText = stats.lastListenedAt?.formatMedium ?? localization.text(.never)
   }
 
+  private func refreshGitHubLastSync() {
+    let lastSyncAt = userDefaults.object(forKey: UserDefaults.githubLastSyncAtKey) as? Date
+    githubLastSyncText = lastSyncAt?.formatMediumDateTime ?? localization.text(.never)
+  }
+
   private func queueAutoDownloads(for podcasts: [Podcast]) {
     let limit = podcastsService.autoDownloadEpisodeLimit
     podcasts.forEach { podcast in
@@ -315,12 +327,23 @@ final class SettingsViewModel: ObservableObject {
     }
   }
 
+  private func observeGitHubSync() {
+    githubSyncObserver = eventCenter.addObserver(
+      forName: .githubSubscriptionSyncDidComplete,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.refreshGitHubLastSync()
+    }
+  }
+
   private func observeLanguageChanges() {
     languageObserver = localization.$language
       .dropFirst()
       .sink { [weak self] _ in
         DispatchQueue.main.async {
           self?.refreshListeningStats()
+          self?.refreshGitHubLastSync()
         }
       }
   }

@@ -1,6 +1,5 @@
 import Combine
 import Foundation
-import Security
 
 enum AppLanguage: String, CaseIterable, Identifiable {
   case english = "en"
@@ -409,7 +408,7 @@ final class LocalizationService: ObservableObject {
     }
   }
 
-  func keychainError(status: OSStatus) -> String {
+  func keychainError(status: Int32) -> String {
     switch language {
     case .english:
       return "Keychain operation failed (\(status))"

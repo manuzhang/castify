@@ -4,9 +4,10 @@ import UIKit
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
   let appContainer: Container = Container()
+  let autoGitHubSubscriptionSyncService = AutoGitHubSubscriptionSyncService.shared
 
   func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-    // Override point for customization after application launch.
+    autoGitHubSubscriptionSyncService.start()
     return true
   }
 
@@ -29,4 +30,3 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   }
 
 }
-

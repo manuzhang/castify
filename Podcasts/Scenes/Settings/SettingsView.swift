@@ -144,6 +144,50 @@ struct SettingsView: View {
           .disabled(viewModel.downloadedEpisodeCount == 0)
         }
 
+        Section(header: Text(localization.text(.githubSync))) {
+          SecureField(localization.text(.githubToken), text: $viewModel.githubTokenInput)
+            .autocapitalization(.none)
+            .disableAutocorrection(true)
+
+          Button(action: {
+            self.viewModel.saveGitHubToken()
+          }, label: {
+            HStack {
+              Image(systemName: "key")
+              Text(localization.text(.saveGitHubToken))
+            }
+          })
+          .disabled(viewModel.githubTokenInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+          Toggle(
+            isOn: Binding(
+              get: { self.viewModel.githubAutoSyncEnabled },
+              set: { self.viewModel.setGitHubAutoSyncEnabled($0) }
+            ),
+            label: {
+              HStack {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                Text(localization.text(.automaticGitHubSync))
+              }
+            }
+          )
+          .disabled(!viewModel.githubTokenSaved)
+
+          HStack {
+            Image(systemName: "clock.arrow.circlepath")
+            Text(localization.text(.githubLastSync))
+            Spacer()
+            Text(viewModel.githubLastSyncText)
+              .foregroundColor(.secondary)
+          }
+
+          if let message = viewModel.githubSyncMessage {
+            Text(message)
+              .font(.subheadline)
+              .foregroundColor(.secondary)
+          }
+        }
+
         Section(header: Text(localization.text(.notifications))) {
           Toggle(
             isOn: Binding(

@@ -88,6 +88,10 @@ extension PodcastViewModel {
     podcastsService.isEpisodePlayed(episode)
   }
 
+  func isEpisodeStarred(_ episode: Episode) -> Bool {
+    podcastsService.isEpisodeStarred(episode)
+  }
+
   func markEpisodePlayed(_ episode: Episode) {
     podcastsService.markEpisodePlayed(episode)
     playbackStateRevision += 1
@@ -95,6 +99,15 @@ extension PodcastViewModel {
 
   func markEpisodeUnplayed(_ episode: Episode) {
     podcastsService.markEpisodeUnplayed(episode)
+    playbackStateRevision += 1
+  }
+
+  func setEpisodeStarred(_ episode: Episode, starred: Bool) {
+    podcastsService.setEpisodeStarred(episode, starred: starred)
+    playbackStateRevision += 1
+  }
+
+  func refreshEpisodeStates() {
     playbackStateRevision += 1
   }
 

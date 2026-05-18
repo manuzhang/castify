@@ -6,15 +6,18 @@ struct EpisodePlaybackState: Codable, Equatable {
   let position: TimeInterval
   let duration: TimeInterval
   let played: Bool
+  let starred: Bool
   let updatedAt: Date
 
   init(position: TimeInterval,
        duration: TimeInterval,
        played: Bool,
+       starred: Bool = false,
        updatedAt: Date = Date()) {
     self.position = position
     self.duration = duration
     self.played = played
+    self.starred = starred
     self.updatedAt = updatedAt
   }
 
@@ -22,6 +25,7 @@ struct EpisodePlaybackState: Codable, Equatable {
     case position
     case duration
     case played
+    case starred
     case updatedAt
   }
 
@@ -30,6 +34,7 @@ struct EpisodePlaybackState: Codable, Equatable {
     position = try container.decode(TimeInterval.self, forKey: .position)
     duration = try container.decode(TimeInterval.self, forKey: .duration)
     played = try container.decode(Bool.self, forKey: .played)
+    starred = try container.decodeIfPresent(Bool.self, forKey: .starred) ?? false
     updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? .distantPast
   }
 
@@ -325,6 +330,10 @@ extension PodcastsService {
     playbackState(for: episode)?.played == true
   }
 
+  func isEpisodeStarred(_ episode: Episode) -> Bool {
+    playbackState(for: episode)?.starred == true
+  }
+
   func savePlaybackPosition(for episode: Episode,
                             elapsedTime: TimeInterval,
                             duration: TimeInterval) {
@@ -334,13 +343,15 @@ extension PodcastsService {
 
     var states = episodePlaybackStates()
     let key = playbackStateKey(for: episode)
+    let existingState = states[key]
     let clampedPosition = min(max(elapsedTime, 0), duration)
-    let played = states[key]?.played == true || isPlayed(position: clampedPosition, duration: duration)
+    let played = existingState?.played == true || isPlayed(position: clampedPosition, duration: duration)
     let resumablePosition = played || clampedPosition < EpisodePlaybackState.minimumResumePosition ? 0 : clampedPosition
     let state = EpisodePlaybackState(
       position: resumablePosition,
       duration: duration,
-      played: played
+      played: played,
+      starred: existingState?.starred == true
     )
 
     states[key] = state
@@ -369,17 +380,63 @@ extension PodcastsService {
   func markEpisodePlayed(_ episode: Episode) {
     var states = episodePlaybackStates()
     let key = playbackStateKey(for: episode)
-    let duration = playbackState(for: episode)?.duration ?? episode.duration ?? 0
-    states[key] = EpisodePlaybackState(position: 0, duration: duration, played: true)
+    let existingState = states[key]
+    let duration = existingState?.duration ?? episode.duration ?? 0
+    states[key] = EpisodePlaybackState(
+      position: 0,
+      duration: duration,
+      played: true,
+      starred: existingState?.starred == true
+    )
     saveEpisodePlaybackStates(states)
     removeInProgressEpisode(episode)
+    NotificationCenter.default.post(name: .episodePlaybackStateDidChange, object: self)
   }
 
   func markEpisodeUnplayed(_ episode: Episode) {
     var states = episodePlaybackStates()
-    states.removeValue(forKey: playbackStateKey(for: episode))
+    let key = playbackStateKey(for: episode)
+    if let existingState = states[key], existingState.starred {
+      states[key] = EpisodePlaybackState(
+        position: 0,
+        duration: existingState.duration,
+        played: false,
+        starred: true
+      )
+    } else {
+      states.removeValue(forKey: key)
+    }
     saveEpisodePlaybackStates(states)
     removeInProgressEpisode(episode)
+    NotificationCenter.default.post(name: .episodePlaybackStateDidChange, object: self)
+  }
+
+  func setEpisodeStarred(_ episode: Episode, starred: Bool) {
+    var states = episodePlaybackStates()
+    let key = playbackStateKey(for: episode)
+    let existingState = states[key]
+    let state = EpisodePlaybackState(
+      position: existingState?.position ?? 0,
+      duration: existingState?.duration ?? episode.duration ?? 0,
+      played: existingState?.played == true,
+      starred: starred
+    )
+
+    if shouldPersist(state) {
+      states[key] = state
+    } else {
+      states.removeValue(forKey: key)
+    }
+
+    saveEpisodePlaybackStates(states)
+
+    if state.hasResumePosition {
+      updateInProgressEpisode(episode, state: state)
+    } else {
+      removeInProgressEpisode(episode)
+    }
+
+    NotificationCenter.default.post(name: .episodePlaybackStateDidChange, object: self)
   }
 
 }
@@ -625,6 +682,10 @@ extension PodcastsService {
 
     let remaining = duration - position
     return remaining <= 30 || position / duration >= 0.95
+  }
+
+  fileprivate func shouldPersist(_ state: EpisodePlaybackState) -> Bool {
+    state.played || state.starred || state.hasResumePosition
   }
 
   private func saveSubscribedPodcasts(_ podcasts: [Podcast], failureMessage: String) -> Bool {

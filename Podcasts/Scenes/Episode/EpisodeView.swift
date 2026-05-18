@@ -79,14 +79,26 @@ struct EpisodeView: View {
   }
 
   private var playbackStateSection: some View {
-    HStack(spacing: 8) {
-      Image(systemName: playbackStatusIconName)
-        .foregroundColor(playbackState?.played == true ? .green : .blue)
-      Text(playbackStatusText)
-        .foregroundColor(.secondary)
-      Spacer()
-      Button(action: togglePlayedState) {
-        Text(localization.text(playbackState?.played == true ? .markAsUnplayed : .markAsPlayed))
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(spacing: 8) {
+        Image(systemName: playbackStatusIconName)
+          .foregroundColor(playbackState?.played == true ? .green : .blue)
+        Text(playbackStatusText)
+          .foregroundColor(.secondary)
+        Spacer()
+      }
+
+      HStack(spacing: 16) {
+        Button(action: toggleStarredState) {
+          HStack(spacing: 5) {
+            Image(systemName: playbackState?.starred == true ? "star.fill" : "star")
+            Text(localization.text(playbackState?.starred == true ? .unstarEpisode : .starEpisode))
+          }
+        }
+
+        Button(action: togglePlayedState) {
+          Text(localization.text(playbackState?.played == true ? .markAsUnplayed : .markAsPlayed))
+        }
       }
     }
     .font(.subheadline)
@@ -188,6 +200,11 @@ struct EpisodeView: View {
       podcastsService.markEpisodePlayed(episode)
     }
 
+    refreshPlaybackState()
+  }
+
+  private func toggleStarredState() {
+    podcastsService.setEpisodeStarred(episode, starred: playbackState?.starred != true)
     refreshPlaybackState()
   }
 

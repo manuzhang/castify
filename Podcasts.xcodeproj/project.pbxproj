@@ -47,6 +47,8 @@
 		C5A0001026C0000000000010 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0001126C0000000000011 /* KeychainService.swift */; };
 		C5A0001226C0000000000012 /* AutoGitHubSubscriptionSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0001326C0000000000013 /* AutoGitHubSubscriptionSyncService.swift */; };
 		C6A0000126D0000000000001 /* LocalizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6A0000226D0000000000002 /* LocalizationService.swift */; };
+		C7A0000126E0000000000001 /* CrashReportingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A0000226E0000000000002 /* CrashReportingService.swift */; };
+		C7A0000326E0000000000003 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = C7A0000526E0000000000005 /* Sentry */; };
 		C5A0000326C0000000000003 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0000426C0000000000004 /* SettingsView.swift */; };
 		C5A0000526C0000000000005 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0000626C0000000000006 /* SettingsViewModel.swift */; };
 		C5A0000726C0000000000007 /* OPMLDocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0000826C0000000000008 /* OPMLDocumentPicker.swift */; };
@@ -114,6 +116,7 @@
 		C5A0001126C0000000000011 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeychainService.swift; path = Services/KeychainService.swift; sourceTree = "<group>"; };
 		C5A0001326C0000000000013 /* AutoGitHubSubscriptionSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AutoGitHubSubscriptionSyncService.swift; path = Services/AutoGitHubSubscriptionSyncService.swift; sourceTree = "<group>"; };
 		C6A0000226D0000000000002 /* LocalizationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LocalizationService.swift; path = Services/LocalizationService.swift; sourceTree = "<group>"; };
+		C7A0000226E0000000000002 /* CrashReportingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CrashReportingService.swift; path = Services/CrashReportingService.swift; sourceTree = "<group>"; };
 		C5A0000426C0000000000004 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		C5A0000626C0000000000006 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		C5A0000826C0000000000008 /* OPMLDocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OPMLDocumentPicker.swift; sourceTree = "<group>"; };
@@ -130,6 +133,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C7A0000326E0000000000003 /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -220,6 +224,7 @@
 				C5A0001126C0000000000011 /* KeychainService.swift */,
 				C5A0001326C0000000000013 /* AutoGitHubSubscriptionSyncService.swift */,
 				C6A0000226D0000000000002 /* LocalizationService.swift */,
+				C7A0000226E0000000000002 /* CrashReportingService.swift */,
 				3C971F48BAFFB74A37D211A9 /* StringExtensions.swift */,
 				3C9712724BA85E2C41B03698 /* RSSFeedExtensions.swift */,
 				3C97154BC40270F17901277D /* UserDefaultsExtensions.swift */,
@@ -363,6 +368,9 @@
 			dependencies = (
 			);
 			name = Podcasts;
+			packageProductDependencies = (
+				C7A0000526E0000000000005 /* Sentry */,
+			);
 			productName = Podcasts;
 			productReference = C3968F0722AA416C004CB76C /* Castify.app */;
 			productType = "com.apple.product-type.application";
@@ -413,6 +421,9 @@
 				Base,
 			);
 			mainGroup = C3968EFE22AA416C004CB76C;
+			packageReferences = (
+				C7A0000426E0000000000004 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
+			);
 			productRefGroup = C3968F0822AA416C004CB76C /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -477,6 +488,7 @@
 				C5A0001026C0000000000010 /* KeychainService.swift in Sources */,
 				C5A0001226C0000000000012 /* AutoGitHubSubscriptionSyncService.swift in Sources */,
 				C6A0000126D0000000000001 /* LocalizationService.swift in Sources */,
+				C7A0000126E0000000000001 /* CrashReportingService.swift in Sources */,
 				3C97138F52C25CAD48A3B646 /* SearchResult.swift in Sources */,
 				3C9710E76C31464CC200DFD2 /* StringExtensions.swift in Sources */,
 				3C971AE0A08728A9C2B98AA1 /* RSSFeedExtensions.swift in Sources */,
@@ -660,6 +672,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.manuzhang.Castify;
 				PRODUCT_NAME = Castify;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SENTRY_DSN = "";
+				SENTRY_ENVIRONMENT = debug;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -685,6 +699,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.manuzhang.Castify;
 				PRODUCT_NAME = Castify;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SENTRY_DSN = "";
+				SENTRY_ENVIRONMENT = production;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -763,6 +779,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C7A0000426E0000000000004 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/getsentry/sentry-cocoa.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.14.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C7A0000526E0000000000005 /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C7A0000426E0000000000004 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C3968EFF22AA416C004CB76C /* Project object */;
 }

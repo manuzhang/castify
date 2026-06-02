@@ -7,6 +7,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   let autoGitHubSubscriptionSyncService = AutoGitHubSubscriptionSyncService.shared
 
   func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+    CrashReportingService.start()
     autoGitHubSubscriptionSyncService.start()
     return true
   }

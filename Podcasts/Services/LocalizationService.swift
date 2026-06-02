@@ -57,8 +57,15 @@ enum AppText: String {
   case resumeAt
   case played
   case unplayed
+  case starred
+  case favorites
+  case starredEpisodes
+  case noStarredEpisodes
+  case starEpisodesToSave
   case markAsPlayed
   case markAsUnplayed
+  case starEpisode
+  case unstarEpisode
   case downloaded
   case download
   case previousEpisode
@@ -152,8 +159,15 @@ final class LocalizationService: ObservableObject {
       .resumeAt: "Resume",
       .played: "Played",
       .unplayed: "Unplayed",
+      .starred: "Starred",
+      .favorites: "Favorites",
+      .starredEpisodes: "Starred Episodes",
+      .noStarredEpisodes: "No starred episodes",
+      .starEpisodesToSave: "Star episodes to save them here",
       .markAsPlayed: "Mark as Played",
       .markAsUnplayed: "Mark as Unplayed",
+      .starEpisode: "Star Episode",
+      .unstarEpisode: "Unstar Episode",
       .downloaded: "Downloaded",
       .download: "Download",
       .previousEpisode: "Previous episode",
@@ -238,8 +252,15 @@ final class LocalizationService: ObservableObject {
       .resumeAt: "继续",
       .played: "已播放",
       .unplayed: "未播放",
+      .starred: "已加星标",
+      .favorites: "收藏",
+      .starredEpisodes: "星标单集",
+      .noStarredEpisodes: "暂无星标单集",
+      .starEpisodesToSave: "给单集加星标后会显示在这里",
       .markAsPlayed: "标记为已播放",
       .markAsUnplayed: "标记为未播放",
+      .starEpisode: "加星标",
+      .unstarEpisode: "取消星标",
       .downloaded: "已下载",
       .download: "下载",
       .previousEpisode: "上一集",

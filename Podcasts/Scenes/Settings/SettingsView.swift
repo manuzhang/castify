@@ -46,6 +46,19 @@ struct SettingsView: View {
           }
         }
 
+        Section(header: Text(localization.text(.favorites))) {
+          NavigationLink(destination: StarredEpisodesView()) {
+            HStack {
+              Image(systemName: "star.fill")
+                .foregroundColor(.yellow)
+              Text(localization.text(.starredEpisodes))
+              Spacer()
+              Text("\(viewModel.starredEpisodeCount)")
+                .foregroundColor(.secondary)
+            }
+          }
+        }
+
         Section(header: Text(localization.text(.listeningStats))) {
           HStack {
             Image(systemName: "clock")
@@ -209,14 +222,6 @@ struct SettingsView: View {
           }
         }
 
-        Section(header: Text(localization.text(.subscriptions))) {
-          HStack {
-            Text(localization.text(.subscribedPodcasts))
-            Spacer()
-            Text("\(viewModel.subscriptionCount)")
-              .foregroundColor(.secondary)
-          }
-        }
       }
       .navigationBarTitle(Text(localization.text(.settings)))
       .onAppear {
@@ -233,6 +238,62 @@ struct SettingsView: View {
           }
         )
       }
+    }
+  }
+}
+
+private struct StarredEpisodesView: View {
+
+  @ObservedObject var viewModel = StarredEpisodesViewModel()
+  @EnvironmentObject var localization: LocalizationService
+
+  var body: some View {
+    VStack(spacing: 0) {
+      if viewModel.episodes.isEmpty {
+        Spacer()
+        VStack(spacing: 10) {
+          Image(systemName: "star")
+            .font(.system(size: 40))
+            .foregroundColor(.secondary)
+          Text(localization.text(.noStarredEpisodes))
+            .font(.headline)
+          Text(localization.text(.starEpisodesToSave))
+            .font(.subheadline)
+            .foregroundColor(.secondary)
+        }
+        .multilineTextAlignment(.center)
+        .padding()
+        Spacer()
+      } else {
+        List {
+          ForEach(viewModel.episodes, id: \.self) { episode in
+            NavigationLink(destination: EpisodeView(episode: episode, episodes: self.viewModel.episodes)) {
+              EpisodeRow(
+                episode: episode,
+                playbackState: self.viewModel.playbackState(for: episode)
+              )
+            }
+            .contextMenu {
+              Button(action: {
+                self.viewModel.unstar(episode)
+              }) {
+                Text(self.localization.text(.unstarEpisode))
+                Image(systemName: "star.slash")
+              }
+            }
+          }
+        }
+        .listStyle(PlainListStyle())
+      }
+
+      PlayerView()
+    }
+    .navigationBarTitle(Text(localization.text(.starredEpisodes)), displayMode: .inline)
+    .onAppear {
+      self.viewModel.refresh()
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .episodePlaybackStateDidChange)) { _ in
+      self.viewModel.refresh()
     }
   }
 }

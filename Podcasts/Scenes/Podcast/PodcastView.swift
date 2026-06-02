@@ -58,6 +58,16 @@ struct PodcastView: View {
               )
             }
             .contextMenu {
+              Button(action: {
+                self.viewModel.setEpisodeStarred(
+                  episode,
+                  starred: !self.viewModel.isEpisodeStarred(episode)
+                )
+              }) {
+                Text(self.localization.text(self.viewModel.isEpisodeStarred(episode) ? .unstarEpisode : .starEpisode))
+                Image(systemName: self.viewModel.isEpisodeStarred(episode) ? "star.slash" : "star")
+              }
+
               if self.viewModel.isEpisodePlayed(episode) {
                 Button(action: {
                   self.viewModel.markEpisodeUnplayed(episode)
@@ -83,10 +93,14 @@ struct PodcastView: View {
     }
     .navigationBarTitle(Text(viewModel.podcast.trackName), displayMode: .inline)
     .onAppear(perform: {
+      self.viewModel.refreshEpisodeStates()
       self.viewModel.fetchEpisodes {
         self.player.setup(for: self.viewModel.episodes)
       }
     })
+    .onReceive(NotificationCenter.default.publisher(for: .episodePlaybackStateDidChange)) { _ in
+      self.viewModel.refreshEpisodeStates()
+    }
   }
 
   private func toggleSubscription() {

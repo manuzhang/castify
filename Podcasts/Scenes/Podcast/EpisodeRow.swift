@@ -14,10 +14,20 @@ struct EpisodeRow: View {
         .frame(width: 32, height: 32)
 
       VStack(alignment: .leading, spacing: 5) {
-        Text(episode.title)
-          .font(.headline)
-          .foregroundColor(playbackState?.played == true ? .secondary : .primary)
-          .lineLimit(2)
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+          Text(episode.title)
+            .font(.headline)
+            .foregroundColor(playbackState?.played == true ? .secondary : .primary)
+            .lineLimit(2)
+
+          if playbackState?.starred == true {
+            Image(systemName: "star.fill")
+              .font(.caption)
+              .foregroundColor(.yellow)
+              .accessibility(label: Text(localization.text(.starred)))
+          }
+        }
+
         HStack(spacing: 6) {
           Text(episode.pubDate.formatMedium)
           if let duration = episode.duration, duration > 0 {

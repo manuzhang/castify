@@ -6,15 +6,18 @@ struct EpisodePlaybackState: Codable, Equatable {
   let position: TimeInterval
   let duration: TimeInterval
   let played: Bool
+  let starred: Bool
   let updatedAt: Date
 
   init(position: TimeInterval,
        duration: TimeInterval,
        played: Bool,
+       starred: Bool = false,
        updatedAt: Date = Date()) {
     self.position = position
     self.duration = duration
     self.played = played
+    self.starred = starred
     self.updatedAt = updatedAt
   }
 
@@ -22,6 +25,7 @@ struct EpisodePlaybackState: Codable, Equatable {
     case position
     case duration
     case played
+    case starred
     case updatedAt
   }
 
@@ -30,6 +34,7 @@ struct EpisodePlaybackState: Codable, Equatable {
     position = try container.decode(TimeInterval.self, forKey: .position)
     duration = try container.decode(TimeInterval.self, forKey: .duration)
     played = try container.decode(Bool.self, forKey: .played)
+    starred = try container.decodeIfPresent(Bool.self, forKey: .starred) ?? false
     updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? .distantPast
   }
 
@@ -286,6 +291,20 @@ extension PodcastsService {
     return orderedInProgressEpisodes(filteredEpisodes, states: states)
   }
 
+  func starredEpisodes() -> [Episode] {
+    let cachedEpisodes = fetchStarredEpisodes()
+    let states = episodePlaybackStates()
+    let filteredEpisodes = uniqueEpisodes(cachedEpisodes).filter { episode in
+      states[playbackStateKey(for: episode)]?.starred == true
+    }
+
+    if filteredEpisodes.count != cachedEpisodes.count {
+      saveStarredEpisodes(filteredEpisodes)
+    }
+
+    return orderedStarredEpisodes(filteredEpisodes, states: states)
+  }
+
   func reorderInProgressEpisodes(_ episodes: [Episode]) {
     let orderedEpisodes = uniqueEpisodes(episodes)
     cacheInProgressEpisodes(orderedEpisodes)
@@ -309,6 +328,23 @@ extension PodcastsService {
     saveInProgressEpisodes(cachedEpisodes)
   }
 
+  func cacheStarredEpisodes(_ episodes: [Episode]) {
+    let states = episodePlaybackStates()
+    let starredEpisodes = episodes.filter { episode in
+      states[playbackStateKey(for: episode)]?.starred == true
+    }
+    guard !starredEpisodes.isEmpty else {
+      return
+    }
+
+    var cachedEpisodes = fetchStarredEpisodes()
+    starredEpisodes.forEach { episode in
+      cachedEpisodes.removeAll(where: { $0 == episode })
+      cachedEpisodes.append(episode)
+    }
+    saveStarredEpisodes(cachedEpisodes)
+  }
+
   func playbackState(for episode: Episode) -> EpisodePlaybackState? {
     episodePlaybackStates()[playbackStateKey(for: episode)]
   }
@@ -325,6 +361,10 @@ extension PodcastsService {
     playbackState(for: episode)?.played == true
   }
 
+  func isEpisodeStarred(_ episode: Episode) -> Bool {
+    playbackState(for: episode)?.starred == true
+  }
+
   func savePlaybackPosition(for episode: Episode,
                             elapsedTime: TimeInterval,
                             duration: TimeInterval) {
@@ -334,17 +374,20 @@ extension PodcastsService {
 
     var states = episodePlaybackStates()
     let key = playbackStateKey(for: episode)
+    let existingState = states[key]
     let clampedPosition = min(max(elapsedTime, 0), duration)
-    let played = states[key]?.played == true || isPlayed(position: clampedPosition, duration: duration)
+    let played = existingState?.played == true || isPlayed(position: clampedPosition, duration: duration)
     let resumablePosition = played || clampedPosition < EpisodePlaybackState.minimumResumePosition ? 0 : clampedPosition
     let state = EpisodePlaybackState(
       position: resumablePosition,
       duration: duration,
-      played: played
+      played: played,
+      starred: existingState?.starred == true
     )
 
     states[key] = state
     saveEpisodePlaybackStates(states)
+    updateStarredEpisodeIfNeeded(episode, state: state)
     updateInProgressEpisode(episode, state: state)
   }
 
@@ -369,17 +412,66 @@ extension PodcastsService {
   func markEpisodePlayed(_ episode: Episode) {
     var states = episodePlaybackStates()
     let key = playbackStateKey(for: episode)
-    let duration = playbackState(for: episode)?.duration ?? episode.duration ?? 0
-    states[key] = EpisodePlaybackState(position: 0, duration: duration, played: true)
+    let existingState = states[key]
+    let duration = existingState?.duration ?? episode.duration ?? 0
+    states[key] = EpisodePlaybackState(
+      position: 0,
+      duration: duration,
+      played: true,
+      starred: existingState?.starred == true
+    )
     saveEpisodePlaybackStates(states)
+    updateStarredEpisodeIfNeeded(episode, state: states[key])
     removeInProgressEpisode(episode)
+    NotificationCenter.default.post(name: .episodePlaybackStateDidChange, object: self)
   }
 
   func markEpisodeUnplayed(_ episode: Episode) {
     var states = episodePlaybackStates()
-    states.removeValue(forKey: playbackStateKey(for: episode))
+    let key = playbackStateKey(for: episode)
+    if let existingState = states[key], existingState.starred {
+      states[key] = EpisodePlaybackState(
+        position: 0,
+        duration: existingState.duration,
+        played: false,
+        starred: true
+      )
+    } else {
+      states.removeValue(forKey: key)
+    }
     saveEpisodePlaybackStates(states)
+    updateStarredEpisodeIfNeeded(episode, state: states[key])
     removeInProgressEpisode(episode)
+    NotificationCenter.default.post(name: .episodePlaybackStateDidChange, object: self)
+  }
+
+  func setEpisodeStarred(_ episode: Episode, starred: Bool) {
+    var states = episodePlaybackStates()
+    let key = playbackStateKey(for: episode)
+    let existingState = states[key]
+    let state = EpisodePlaybackState(
+      position: existingState?.position ?? 0,
+      duration: existingState?.duration ?? episode.duration ?? 0,
+      played: existingState?.played == true,
+      starred: starred
+    )
+
+    if shouldPersist(state) {
+      states[key] = state
+    } else {
+      states.removeValue(forKey: key)
+    }
+
+    saveEpisodePlaybackStates(states)
+    updateStarredEpisodeIfNeeded(episode, state: state)
+
+    if state.hasResumePosition {
+      updateInProgressEpisode(episode, state: state)
+    } else {
+      removeInProgressEpisode(episode)
+    }
+
+    NotificationCenter.default.post(name: .episodePlaybackStateDidChange, object: self)
   }
 
 }
@@ -430,6 +522,19 @@ extension PodcastsService {
       return try JSONDecoder().decode([Episode].self, from: data)
     } catch let decodeError {
       print("Failed to decode:", decodeError)
+      return []
+    }
+  }
+
+  fileprivate func fetchStarredEpisodes() -> [Episode] {
+    guard let data = UserDefaults.standard.data(forKey: UserDefaults.starredEpisodesKey) else {
+      return []
+    }
+
+    do {
+      return try JSONDecoder().decode([Episode].self, from: data)
+    } catch let decodeError {
+      print("Failed to decode starred episodes:", decodeError)
       return []
     }
   }
@@ -526,12 +631,37 @@ extension PodcastsService {
     return orderedEpisodes + remainingEpisodes
   }
 
+  fileprivate func orderedStarredEpisodes(
+    _ episodes: [Episode],
+    states: [String: EpisodePlaybackState]
+  ) -> [Episode] {
+    episodes.sorted { lhs, rhs in
+      let lhsState = states[playbackStateKey(for: lhs)]
+      let rhsState = states[playbackStateKey(for: rhs)]
+
+      if lhsState?.updatedAt != rhsState?.updatedAt {
+        return (lhsState?.updatedAt ?? .distantPast) > (rhsState?.updatedAt ?? .distantPast)
+      }
+
+      return lhs.pubDate > rhs.pubDate
+    }
+  }
+
   fileprivate func saveInProgressEpisodes(_ episodes: [Episode]) {
     do {
       let data = try JSONEncoder().encode(uniqueEpisodes(episodes))
       UserDefaults.standard.set(data, forKey: UserDefaults.inProgressEpisodesKey)
     } catch let encodeError {
       print("Failed to encode in-progress episodes:", encodeError)
+    }
+  }
+
+  fileprivate func saveStarredEpisodes(_ episodes: [Episode]) {
+    do {
+      let data = try JSONEncoder().encode(uniqueEpisodes(episodes))
+      UserDefaults.standard.set(data, forKey: UserDefaults.starredEpisodesKey)
+    } catch let encodeError {
+      print("Failed to encode starred episodes:", encodeError)
     }
   }
 
@@ -548,6 +678,21 @@ extension PodcastsService {
     }
   }
 
+  fileprivate func updateStarredEpisodeIfNeeded(_ episode: Episode, state: EpisodePlaybackState?) {
+    guard state?.starred == true else {
+      removeStarredEpisode(episode)
+      return
+    }
+
+    let cachedEpisodes = fetchStarredEpisodes()
+    var updatedEpisodes = cachedEpisodes.filter { $0 != episode }
+    updatedEpisodes.append(episode)
+
+    if updatedEpisodes != cachedEpisodes {
+      saveStarredEpisodes(updatedEpisodes)
+    }
+  }
+
   fileprivate func removeInProgressEpisode(_ episode: Episode) {
     let cachedEpisodes = fetchInProgressEpisodes()
     let updatedEpisodes = cachedEpisodes.filter { $0 != episode }
@@ -555,6 +700,14 @@ extension PodcastsService {
       saveInProgressEpisodes(updatedEpisodes)
     }
     cleanInProgressEpisodeOrder(for: updatedEpisodes)
+  }
+
+  fileprivate func removeStarredEpisode(_ episode: Episode) {
+    let cachedEpisodes = fetchStarredEpisodes()
+    let updatedEpisodes = cachedEpisodes.filter { $0 != episode }
+    if updatedEpisodes != cachedEpisodes {
+      saveStarredEpisodes(updatedEpisodes)
+    }
   }
 
   fileprivate func uniqueEpisodes(_ episodes: [Episode]) -> [Episode] {
@@ -625,6 +778,10 @@ extension PodcastsService {
 
     let remaining = duration - position
     return remaining <= 30 || position / duration >= 0.95
+  }
+
+  fileprivate func shouldPersist(_ state: EpisodePlaybackState) -> Bool {
+    state.played || state.starred || state.hasResumePosition
   }
 
   private func saveSubscribedPodcasts(_ podcasts: [Podcast], failureMessage: String) -> Bool {

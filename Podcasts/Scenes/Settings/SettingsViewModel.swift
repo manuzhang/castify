@@ -8,7 +8,6 @@ final class SettingsViewModel: ObservableObject {
   @Published private(set) var isImporting = false
   @Published private(set) var notificationStatus: UNAuthorizationStatus = .notDetermined
   @Published private(set) var notificationsEnabled = false
-  @Published private(set) var subscriptionCount = 0
   @Published var githubTokenInput = ""
   @Published private(set) var githubTokenSaved = false
   @Published private(set) var githubSyncMessage: String?
@@ -18,6 +17,7 @@ final class SettingsViewModel: ObservableObject {
   @Published private(set) var autoDownloadEpisodeLimit = PodcastsService.defaultAutoDownloadEpisodeLimit
   @Published private(set) var autoDownloadWifiOnly = false
   @Published private(set) var downloadedEpisodeCount = 0
+  @Published private(set) var starredEpisodeCount = 0
   @Published private(set) var storageUsedText = ByteCountFormatter.string(fromByteCount: 0, countStyle: .file)
   @Published private(set) var totalListeningTimeText = ""
   @Published private(set) var finishedEpisodeCount = 0
@@ -33,6 +33,7 @@ final class SettingsViewModel: ObservableObject {
   private let userDefaults: UserDefaults
   private let localization: LocalizationService
   private var downloadCompleteObserver: NSObjectProtocol?
+  private var episodePlaybackStateObserver: NSObjectProtocol?
   private var listeningStatsObserver: NSObjectProtocol?
   private var githubSyncObserver: NSObjectProtocol?
   private var languageObserver: AnyCancellable?
@@ -59,6 +60,7 @@ final class SettingsViewModel: ObservableObject {
     self.githubAutoSyncEnabled = userDefaults.bool(forKey: UserDefaults.githubAutoSyncEnabledKey)
     refresh()
     observeDownloads()
+    observeEpisodePlaybackState()
     observeListeningStats()
     observeGitHubSync()
     observeLanguageChanges()
@@ -67,6 +69,9 @@ final class SettingsViewModel: ObservableObject {
   deinit {
     if let downloadCompleteObserver = downloadCompleteObserver {
       eventCenter.removeObserver(downloadCompleteObserver)
+    }
+    if let episodePlaybackStateObserver = episodePlaybackStateObserver {
+      eventCenter.removeObserver(episodePlaybackStateObserver)
     }
     if let listeningStatsObserver = listeningStatsObserver {
       eventCenter.removeObserver(listeningStatsObserver)
@@ -95,13 +100,13 @@ final class SettingsViewModel: ObservableObject {
   }
 
   func refresh() {
-    subscriptionCount = podcastsService.subscribedPodcasts.count
     refreshGitHubTokenState()
     refreshGitHubLastSync()
     autoDownloadEnabled = podcastsService.autoDownloadEnabled
     autoDownloadEpisodeLimit = podcastsService.autoDownloadEpisodeLimit
     autoDownloadWifiOnly = podcastsService.autoDownloadWifiOnly
     downloadedEpisodeCount = podcastsService.downloadedEpisodeCount()
+    starredEpisodeCount = podcastsService.starredEpisodes().count
     refreshListeningStats()
     storageUsedText = ByteCountFormatter.string(
       fromByteCount: podcastsService.downloadedEpisodesStorageSize(),
@@ -317,6 +322,16 @@ final class SettingsViewModel: ObservableObject {
     }
   }
 
+  private func observeEpisodePlaybackState() {
+    episodePlaybackStateObserver = eventCenter.addObserver(
+      forName: .episodePlaybackStateDidChange,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.starredEpisodeCount = self?.podcastsService.starredEpisodes().count ?? 0
+    }
+  }
+
   private func observeListeningStats() {
     listeningStatsObserver = eventCenter.addObserver(
       forName: .listeningStatsDidChange,
@@ -346,5 +361,30 @@ final class SettingsViewModel: ObservableObject {
           self?.refreshGitHubLastSync()
         }
       }
+  }
+}
+
+final class StarredEpisodesViewModel: ObservableObject {
+
+  @Published private(set) var episodes = [Episode]()
+
+  private let podcastsService: PodcastsService
+
+  init(podcastsService: PodcastsService = PodcastsService()) {
+    self.podcastsService = podcastsService
+    refresh()
+  }
+
+  func refresh() {
+    episodes = podcastsService.starredEpisodes()
+  }
+
+  func playbackState(for episode: Episode) -> EpisodePlaybackState? {
+    podcastsService.playbackState(for: episode)
+  }
+
+  func unstar(_ episode: Episode) {
+    podcastsService.setEpisodeStarred(episode, starred: false)
+    refresh()
   }
 }

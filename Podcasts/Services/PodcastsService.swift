@@ -291,6 +291,20 @@ extension PodcastsService {
     return orderedInProgressEpisodes(filteredEpisodes, states: states)
   }
 
+  func starredEpisodes() -> [Episode] {
+    let cachedEpisodes = fetchStarredEpisodes()
+    let states = episodePlaybackStates()
+    let filteredEpisodes = uniqueEpisodes(cachedEpisodes).filter { episode in
+      states[playbackStateKey(for: episode)]?.starred == true
+    }
+
+    if filteredEpisodes.count != cachedEpisodes.count {
+      saveStarredEpisodes(filteredEpisodes)
+    }
+
+    return orderedStarredEpisodes(filteredEpisodes, states: states)
+  }
+
   func reorderInProgressEpisodes(_ episodes: [Episode]) {
     let orderedEpisodes = uniqueEpisodes(episodes)
     cacheInProgressEpisodes(orderedEpisodes)
@@ -312,6 +326,23 @@ extension PodcastsService {
       cachedEpisodes.append(episode)
     }
     saveInProgressEpisodes(cachedEpisodes)
+  }
+
+  func cacheStarredEpisodes(_ episodes: [Episode]) {
+    let states = episodePlaybackStates()
+    let starredEpisodes = episodes.filter { episode in
+      states[playbackStateKey(for: episode)]?.starred == true
+    }
+    guard !starredEpisodes.isEmpty else {
+      return
+    }
+
+    var cachedEpisodes = fetchStarredEpisodes()
+    starredEpisodes.forEach { episode in
+      cachedEpisodes.removeAll(where: { $0 == episode })
+      cachedEpisodes.append(episode)
+    }
+    saveStarredEpisodes(cachedEpisodes)
   }
 
   func playbackState(for episode: Episode) -> EpisodePlaybackState? {
@@ -356,6 +387,7 @@ extension PodcastsService {
 
     states[key] = state
     saveEpisodePlaybackStates(states)
+    updateStarredEpisodeIfNeeded(episode, state: state)
     updateInProgressEpisode(episode, state: state)
   }
 
@@ -389,6 +421,7 @@ extension PodcastsService {
       starred: existingState?.starred == true
     )
     saveEpisodePlaybackStates(states)
+    updateStarredEpisodeIfNeeded(episode, state: states[key])
     removeInProgressEpisode(episode)
     NotificationCenter.default.post(name: .episodePlaybackStateDidChange, object: self)
   }
@@ -407,6 +440,7 @@ extension PodcastsService {
       states.removeValue(forKey: key)
     }
     saveEpisodePlaybackStates(states)
+    updateStarredEpisodeIfNeeded(episode, state: states[key])
     removeInProgressEpisode(episode)
     NotificationCenter.default.post(name: .episodePlaybackStateDidChange, object: self)
   }
@@ -429,6 +463,7 @@ extension PodcastsService {
     }
 
     saveEpisodePlaybackStates(states)
+    updateStarredEpisodeIfNeeded(episode, state: state)
 
     if state.hasResumePosition {
       updateInProgressEpisode(episode, state: state)
@@ -487,6 +522,19 @@ extension PodcastsService {
       return try JSONDecoder().decode([Episode].self, from: data)
     } catch let decodeError {
       print("Failed to decode:", decodeError)
+      return []
+    }
+  }
+
+  fileprivate func fetchStarredEpisodes() -> [Episode] {
+    guard let data = UserDefaults.standard.data(forKey: UserDefaults.starredEpisodesKey) else {
+      return []
+    }
+
+    do {
+      return try JSONDecoder().decode([Episode].self, from: data)
+    } catch let decodeError {
+      print("Failed to decode starred episodes:", decodeError)
       return []
     }
   }
@@ -583,12 +631,37 @@ extension PodcastsService {
     return orderedEpisodes + remainingEpisodes
   }
 
+  fileprivate func orderedStarredEpisodes(
+    _ episodes: [Episode],
+    states: [String: EpisodePlaybackState]
+  ) -> [Episode] {
+    episodes.sorted { lhs, rhs in
+      let lhsState = states[playbackStateKey(for: lhs)]
+      let rhsState = states[playbackStateKey(for: rhs)]
+
+      if lhsState?.updatedAt != rhsState?.updatedAt {
+        return (lhsState?.updatedAt ?? .distantPast) > (rhsState?.updatedAt ?? .distantPast)
+      }
+
+      return lhs.pubDate > rhs.pubDate
+    }
+  }
+
   fileprivate func saveInProgressEpisodes(_ episodes: [Episode]) {
     do {
       let data = try JSONEncoder().encode(uniqueEpisodes(episodes))
       UserDefaults.standard.set(data, forKey: UserDefaults.inProgressEpisodesKey)
     } catch let encodeError {
       print("Failed to encode in-progress episodes:", encodeError)
+    }
+  }
+
+  fileprivate func saveStarredEpisodes(_ episodes: [Episode]) {
+    do {
+      let data = try JSONEncoder().encode(uniqueEpisodes(episodes))
+      UserDefaults.standard.set(data, forKey: UserDefaults.starredEpisodesKey)
+    } catch let encodeError {
+      print("Failed to encode starred episodes:", encodeError)
     }
   }
 
@@ -605,6 +678,21 @@ extension PodcastsService {
     }
   }
 
+  fileprivate func updateStarredEpisodeIfNeeded(_ episode: Episode, state: EpisodePlaybackState?) {
+    guard state?.starred == true else {
+      removeStarredEpisode(episode)
+      return
+    }
+
+    let cachedEpisodes = fetchStarredEpisodes()
+    var updatedEpisodes = cachedEpisodes.filter { $0 != episode }
+    updatedEpisodes.append(episode)
+
+    if updatedEpisodes != cachedEpisodes {
+      saveStarredEpisodes(updatedEpisodes)
+    }
+  }
+
   fileprivate func removeInProgressEpisode(_ episode: Episode) {
     let cachedEpisodes = fetchInProgressEpisodes()
     let updatedEpisodes = cachedEpisodes.filter { $0 != episode }
@@ -612,6 +700,14 @@ extension PodcastsService {
       saveInProgressEpisodes(updatedEpisodes)
     }
     cleanInProgressEpisodeOrder(for: updatedEpisodes)
+  }
+
+  fileprivate func removeStarredEpisode(_ episode: Episode) {
+    let cachedEpisodes = fetchStarredEpisodes()
+    let updatedEpisodes = cachedEpisodes.filter { $0 != episode }
+    if updatedEpisodes != cachedEpisodes {
+      saveStarredEpisodes(updatedEpisodes)
+    }
   }
 
   fileprivate func uniqueEpisodes(_ episodes: [Episode]) -> [Episode] {

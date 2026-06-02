@@ -58,6 +58,10 @@ enum AppText: String {
   case played
   case unplayed
   case starred
+  case favorites
+  case starredEpisodes
+  case noStarredEpisodes
+  case starEpisodesToSave
   case markAsPlayed
   case markAsUnplayed
   case starEpisode
@@ -156,6 +160,10 @@ final class LocalizationService: ObservableObject {
       .played: "Played",
       .unplayed: "Unplayed",
       .starred: "Starred",
+      .favorites: "Favorites",
+      .starredEpisodes: "Starred Episodes",
+      .noStarredEpisodes: "No starred episodes",
+      .starEpisodesToSave: "Star episodes to save them here",
       .markAsPlayed: "Mark as Played",
       .markAsUnplayed: "Mark as Unplayed",
       .starEpisode: "Star Episode",
@@ -245,6 +253,10 @@ final class LocalizationService: ObservableObject {
       .played: "已播放",
       .unplayed: "未播放",
       .starred: "已加星标",
+      .favorites: "收藏",
+      .starredEpisodes: "星标单集",
+      .noStarredEpisodes: "暂无星标单集",
+      .starEpisodesToSave: "给单集加星标后会显示在这里",
       .markAsPlayed: "标记为已播放",
       .markAsUnplayed: "标记为未播放",
       .starEpisode: "加星标",

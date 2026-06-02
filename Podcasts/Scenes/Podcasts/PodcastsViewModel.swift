@@ -44,6 +44,7 @@ final class PodcastsViewModel: ObservableObject {
 
         if case .success(let feed) = result {
           self.podcastsService.cacheInProgressEpisodes(feed.episodes)
+          self.podcastsService.cacheStarredEpisodes(feed.episodes)
         }
 
         remainingFeeds -= 1

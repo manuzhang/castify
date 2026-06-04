@@ -10,7 +10,7 @@ let package = Package(
     .library(name: "Podcasts", targets: ["Podcasts"])
   ],
   dependencies: [
-    .package(url: "https://github.com/getsentry/sentry-cocoa.git", from: "8.58.3")
+    .package(url: "https://github.com/getsentry/sentry-cocoa.git", from: "9.16.1")
   ],
   targets: [
     .target(

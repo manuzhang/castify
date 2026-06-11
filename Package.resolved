@@ -1,6 +1,16 @@
 {
   "object": {
-    "pins": []
+    "pins": [
+      {
+        "package": "Sentry",
+        "repositoryURL": "https://github.com/getsentry/sentry-cocoa.git",
+        "state": {
+          "branch": null,
+          "revision": "f296a015239d68ad4214981f4a1d3d7ab4cc82c4",
+          "version": "9.17.0"
+        }
+      }
+    ]
   },
   "version": 1
 }

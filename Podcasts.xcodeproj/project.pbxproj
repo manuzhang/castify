@@ -58,6 +58,8 @@
 		C3F5D70122B04FDC00C25132 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F5D70022B04FDC00C25132 /* PlayerView.swift */; };
 		C3FE2D0122AAACF300B814BE /* AnySubscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3FE2D0022AAACF300B814BE /* AnySubscription.swift */; };
 		C3FE2D0B22AAC6B500B814BE /* Podcast.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3FE2D0A22AAC6B500B814BE /* Podcast.swift */; };
+		C8A0000126F0000000000001 /* UIImageColorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A0000226F0000000000002 /* UIImageColorTests.swift */; };
+		C8A0000326F0000000000003 /* PlayerPlaybackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A0000426F0000000000004 /* PlayerPlaybackTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -126,6 +128,8 @@
 		C3F5D70022B04FDC00C25132 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
 		C3FE2D0022AAACF300B814BE /* AnySubscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnySubscription.swift; sourceTree = "<group>"; };
 		C3FE2D0A22AAC6B500B814BE /* Podcast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Podcast.swift; sourceTree = "<group>"; };
+		C8A0000226F0000000000002 /* UIImageColorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIImageColorTests.swift; sourceTree = "<group>"; };
+		C8A0000426F0000000000004 /* PlayerPlaybackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerPlaybackTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -190,6 +194,7 @@
 			isa = PBXGroup;
 			children = (
 				C3968F0922AA416C004CB76C /* Podcasts */,
+				C8A0000526F0000000000005 /* PodcastsTests */,
 				C3968F0822AA416C004CB76C /* Products */,
 				C3D56D0322AE81C600B0A948 /* Frameworks */,
 			);
@@ -350,6 +355,15 @@
 				C307F30322ACFF35001579EA /* Models */,
 			);
 			path = Podcasts;
+			sourceTree = "<group>";
+		};
+		C8A0000526F0000000000005 /* PodcastsTests */ = {
+			isa = PBXGroup;
+			children = (
+				C8A0000226F0000000000002 /* UIImageColorTests.swift */,
+				C8A0000426F0000000000004 /* PlayerPlaybackTests.swift */,
+			);
+			path = PodcastsTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -513,6 +527,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C8A0000126F0000000000001 /* UIImageColorTests.swift in Sources */,
+				C8A0000326F0000000000003 /* PlayerPlaybackTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -712,18 +728,18 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = EAL5PKWJ89;
-				INFOPLIST_FILE = PodcastsTests/Info.plist;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.github.albertopeam.PodcastsTests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.manuzhang.CastifyTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Podcasts.app/Podcasts";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Castify.app/Castify";
 			};
 			name = Debug;
 		};
@@ -733,18 +749,18 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = EAL5PKWJ89;
-				INFOPLIST_FILE = PodcastsTests/Info.plist;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.github.albertopeam.PodcastsTests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.manuzhang.CastifyTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Podcasts.app/Podcasts";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Castify.app/Castify";
 			};
 			name = Release;
 		};

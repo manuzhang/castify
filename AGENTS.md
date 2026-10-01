@@ -42,8 +42,13 @@ Use this command as the default verification:
 xcodebuild -project Podcasts.xcodeproj -scheme Podcasts -destination 'generic/platform=iOS Simulator' build
 ```
 
-There is currently no dedicated test target. A successful simulator build is
-the baseline verification unless a task adds tests or the user asks for more.
+The `PodcastsTests` target contains image-placeholder and local playback
+regression tests. Run them with the shared `Podcasts` scheme on an available
+iOS simulator:
+
+```sh
+xcodebuild -project Podcasts.xcodeproj -scheme Podcasts -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+```
 
 To refresh the booted simulator with the current branch:
 

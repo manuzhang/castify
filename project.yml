@@ -1,0 +1,98 @@
+name: Podcasts
+options:
+  xcodeVersion: "26.4"
+  deploymentTarget:
+    iOS: "13.0"
+  defaultConfig: Release
+attributes:
+  ORGANIZATIONNAME: io.github.manuzhang
+fileGroups:
+  - README.md
+  - project.yml
+  - Podcasts/Preview Content
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    CLANG_CXX_LANGUAGE_STANDARD: gnu++14
+    GCC_C_LANGUAGE_STANDARD: gnu11
+packages:
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa.git
+    # Sentry 9 requires iOS 15. Preserve the app's iOS 13 support.
+    exactVersion: 8.58.3
+targets:
+  Podcasts:
+    type: application
+    platform: iOS
+    sources:
+      - path: Podcasts
+        excludes:
+          - Services
+          - Preview Content
+      - path: Podcasts/Services
+        excludes:
+          - DataSources
+      # Preserve the original folder resource alongside its compiled sources.
+      - path: Podcasts/Services
+        name: Services Resources
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - sdk: SwiftUI.framework
+      - package: Sentry
+    settings:
+      base:
+        PRODUCT_NAME: Castify
+        PRODUCT_MODULE_NAME: Castify
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.manuzhang.Castify
+        INFOPLIST_FILE: Podcasts/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: ""
+        PROVISIONING_PROFILE_SPECIFIER: ""
+        ENABLE_PREVIEWS: YES
+        DEVELOPMENT_ASSET_PATHS: '"Podcasts/Preview Content"'
+        SENTRY_DSN: ""
+      configs:
+        Debug:
+          SENTRY_ENVIRONMENT: debug
+        Release:
+          SENTRY_ENVIRONMENT: production
+  PodcastsTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - PodcastsTests
+    dependencies:
+      - target: Podcasts
+    settings:
+      base:
+        PRODUCT_NAME: $(TARGET_NAME)
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.manuzhang.CastifyTests
+        ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: YES
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Castify.app/Castify
+        BUNDLE_LOADER: $(TEST_HOST)
+schemes:
+  Podcasts:
+    build:
+      targets:
+        Podcasts: all
+        PodcastsTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - name: PodcastsTests
+          parallelizable: false
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

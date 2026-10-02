@@ -17,6 +17,16 @@ Primary code lives under `Podcasts/`:
 - `Podcasts/Extensions/` contains shared extensions and app constants.
 - `Podcasts.xcodeproj` is the Xcode project to build and run.
 
+`project.yml` is the source of truth for project and dependency settings.
+Generate with `sh scripts/generate-project.sh` after changing it or adding source
+files. Do not edit the generated `.xcodeproj` independently. Commit generated
+project changes alongside the spec. Keep the workspace `Package.resolved` as the
+only dependency lockfile; regenerate it with `xcodebuild -resolvePackageDependencies`
+when updating the version in the spec. There is no root Swift package.
+
+The script uses checksum-verified XcodeGen 2.46.0 without a global installation.
+CI regenerates the project, rejects drift, and builds from the committed lockfile.
+
 ## Branching
 
 Start each independent task from a fresh branch based on `origin/main` unless
@@ -39,6 +49,7 @@ branch unless the user asks for follow-up work on that PR.
 Use this command as the default verification:
 
 ```sh
+sh scripts/generate-project.sh
 xcodebuild -project Podcasts.xcodeproj -scheme Podcasts -destination 'generic/platform=iOS Simulator' build
 ```
 

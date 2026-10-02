@@ -19,6 +19,11 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Generate Xcode project and check for drift
+        run: |
+          sh scripts/generate-project.sh
+          git diff --exit-code -- Podcasts.xcodeproj
+
       - name: Build app
         run: |
           set -o pipefail
@@ -27,5 +32,6 @@ jobs:
             -scheme Podcasts \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
+            -onlyUsePackageVersionsFromResolvedFile \
             CODE_SIGNING_ALLOWED=NO \
             build

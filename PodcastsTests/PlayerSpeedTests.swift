@@ -153,6 +153,62 @@ final class PlayerSpeedTests: XCTestCase {
     XCTAssertEqual((center.nowPlayingInfo?[MPNowPlayingInfoPropertyDefaultPlaybackRate] as? NSNumber)?.floatValue, 1.75)
   }
 
+  func testListeningTimeNormalizesFastAndSlowPlaybackAndExcludesPausedChanges() throws {
+    let savedStats = UserDefaults.standard.data(forKey: UserDefaults.listeningStatsKey)
+    defer { UserDefaults.standard.set(savedStats, forKey: UserDefaults.listeningStatsKey) }
+    let service = PodcastsService()
+    for speed in [PlaybackSpeed.double, .threeQuarters] {
+      let fixture = try makeFixture()
+      defer { try? FileManager.default.removeItem(at: fixture.url) }
+      let avPlayer = AVPlayer()
+      let player = Player(avPlayer: avPlayer, podcastsService: service, userDefaults: defaults)
+      defer { player.pause(); avPlayer.replaceCurrentItem(with: nil) }
+      player.setup(for: fixture.episodes)
+      waitUntilReady(avPlayer)
+      player.setPlaybackSpeed(speed)
+      let initial = service.listeningStats.totalListeningTime
+      player.play()
+      waitUntilElapsed(player, reaches: 3)
+      player.pause()
+      let listened = service.listeningStats.totalListeningTime - initial
+      XCTAssertEqual(listened, player.elapsedTime / Double(speed.rawValue), accuracy: 0.05)
+      let pausedStats = service.listeningStats.totalListeningTime
+      player.setPlaybackSpeed(speed == .double ? .threeQuarters : .double)
+      XCTAssertEqual(avPlayer.rate, 0)
+      XCTAssertEqual(service.listeningStats.totalListeningTime, pausedStats)
+    }
+  }
+
+  func testListeningTimeSplitsIntervalsAtSpeedChangesAndEpisodeSwitches() throws {
+    let savedStats = UserDefaults.standard.data(forKey: UserDefaults.listeningStatsKey)
+    defer { UserDefaults.standard.set(savedStats, forKey: UserDefaults.listeningStatsKey) }
+    let service = PodcastsService()
+    let fixture = try makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.url) }
+    let avPlayer = AVPlayer()
+    let player = Player(avPlayer: avPlayer, podcastsService: service, userDefaults: defaults)
+    defer { player.pause(); avPlayer.replaceCurrentItem(with: nil) }
+    player.setup(for: fixture.episodes)
+    waitUntilReady(avPlayer)
+    player.setPlaybackSpeed(.double)
+    let initial = service.listeningStats.totalListeningTime
+    player.play()
+    waitUntilElapsed(player, reaches: 3)
+    player.setPlaybackSpeed(.threeQuarters)
+    let speedBoundary = player.elapsedTime
+    XCTAssertEqual(service.listeningStats.totalListeningTime - initial, speedBoundary / 2, accuracy: 0.05)
+    waitUntilElapsed(player, reaches: speedBoundary + 2)
+    let episodeBoundary = avPlayer.currentTime().seconds
+    player.next()
+    let firstListening = speedBoundary / 2 + (episodeBoundary - speedBoundary) / 0.75
+    XCTAssertEqual(service.listeningStats.totalListeningTime - initial, firstListening, accuracy: 0.1)
+    waitUntilReady(avPlayer)
+    waitUntilElapsed(player, reaches: 2)
+    player.pause()
+    XCTAssertEqual(service.listeningStats.totalListeningTime - initial,
+                   firstListening + player.elapsedTime / 0.75, accuracy: 0.1)
+  }
+
   func testPlayerControlRendersIdlePlayingAndPausedInEnglishAndChinese() throws {
     let fixture = try makeFixture()
     defer { try? FileManager.default.removeItem(at: fixture.url) }
@@ -209,6 +265,13 @@ final class PlayerSpeedTests: XCTestCase {
       player.rate == speed && player.currentTime().seconds > 0.1
     }, object: nil)
     wait(for: [playing], timeout: 15)
+  }
+
+  private func waitUntilElapsed(_ player: Player, reaches seconds: TimeInterval) {
+    let elapsed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+      player.elapsedTime >= seconds
+    }, object: nil)
+    wait(for: [elapsed], timeout: 15)
   }
 
   private func attachPlayerImage(_ player: Player, localization: LocalizationService, name: String, width: CGFloat) {

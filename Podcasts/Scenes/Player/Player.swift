@@ -179,6 +179,10 @@ class Player: ObservableObject {
   }
 
   func setPlaybackSpeed(_ speed: PlaybackSpeed) {
+    // Finish the current listening interval at its old rate before changing it.
+    if isPlaying {
+      didUpdatedPlayer(time: avPlayer.currentTime())
+    }
     playbackSpeed = speed
     userDefaults.set(speed.rawValue, forKey: UserDefaults.playbackSpeedKey)
     // A speed change must not start idle or paused audio. Use intended playback
@@ -370,6 +374,9 @@ class Player: ObservableObject {
       return
     }
     if current != next {
+      if isPlaying {
+        didUpdatedPlayer(time: avPlayer.currentTime())
+      }
       self.avPlayer.replaceCurrentItem(with: makePlayerItem(url: url))
       restorePlaybackPosition(for: next)
     }
@@ -387,7 +394,11 @@ class Player: ObservableObject {
     guard let episode = current else {
       return
     }
+    let previousElapsedTime = elapsedTime
     updateProgress(time: avPlayer.currentTime())
+    if isPlaying {
+      recordListeningTime(from: previousElapsedTime, to: elapsedTime)
+    }
     podcastsService.savePlaybackPosition(
       for: episode,
       elapsedTime: elapsedTime,
@@ -430,6 +441,9 @@ class Player: ObservableObject {
       return
     }
 
+    if isPlaying {
+      didUpdatedPlayer(time: avPlayer.currentTime())
+    }
     if !autoplay {
       avPlayer.pause()
     }
@@ -525,7 +539,8 @@ class Player: ObservableObject {
       return
     }
 
-    podcastsService.recordListeningTime(seconds)
+    // The media timeline advances faster/slower than actual listening time.
+    podcastsService.recordListeningTime(seconds / Double(playbackSpeed.rawValue))
   }
 
   private func validSeconds(from time: CMTime) -> TimeInterval {

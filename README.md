@@ -41,13 +41,16 @@ is saved across launches and applied on play/resume and episode changes while
 preserving audio pitch. Changing speed while idle/paused does not start playback;
 Next/Previous also keep paused audio paused. Lock-screen playback metadata
 reports the selected speed and a zero current rate while paused.
+Listening statistics count time spent listening, normalized for playback speed,
+including intervals across speed changes, pauses, and episode switches.
 
 ## Tests
 
 The shared `Podcasts` scheme runs `PodcastsTests`, covering solid-color artwork
 placeholders and local playback (play, pause, seek, and queue navigation).
 Speed tests cover saved/default selections, paused changes, resume, episode
-switches, playback metadata, and English/Chinese player renderings.
+switches, rate-correct listening statistics, playback metadata, and
+English/Chinese player renderings.
 Use the same runner as CI:
 
 ```sh

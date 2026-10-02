@@ -32,6 +32,19 @@ jobs:
             -scheme Podcasts \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
             -onlyUsePackageVersionsFromResolvedFile \
             CODE_SIGNING_ALLOWED=NO \
             build
+
+      - name: Run regression tests
+        run: bash scripts/run-tests.sh
+
+      - name: Upload regression test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: castify-regression-results
+          path: build/test-results/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -38,11 +38,22 @@ through `project.yml` so they cannot change an unused root package independently
 
 The shared `Podcasts` scheme runs `PodcastsTests`, covering solid-color artwork
 placeholders and local playback (play, pause, seek, and queue navigation).
-Choose an installed simulator, for example:
+Use the same runner as CI:
 
 ```sh
-xcodebuild -project Podcasts.xcodeproj -scheme Podcasts -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+sh scripts/generate-project.sh
+bash scripts/run-tests.sh
 ```
+
+The runner selects an available iPhone type from the newest installed iOS
+runtime, creates a fresh simulator, runs tests serially, and removes that
+simulator afterward. It does not use existing simulator app data. Results and
+logs stay in `build/test-results/run.*/`; open `Tests.xcresult` in Xcode to inspect
+failures. The playback fixture uses local audio and makes no network requests.
+
+GitHub Actions runs the tests after generation/drift and build checks. It uploads
+the `castify-regression-results` artifact even when tests fail, if results exist,
+and keeps it for seven days. The test process's failure status is preserved.
 
 ## Crash Reporting
 

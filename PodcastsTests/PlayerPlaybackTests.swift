@@ -6,8 +6,10 @@ final class PlayerPlaybackTests: XCTestCase {
   func testLocalPlaybackWithMissingArtworkSupportsPauseSeekAndQueueNavigation() throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".caf")
     defer { try? FileManager.default.removeItem(at: url) }
+    // Keep the fixture playing beyond the polling deadline on a busy CI runner.
+    let fixtureDuration: TimeInterval = 30
     let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1))
-    let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 44100 * 4))
+    let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(44100 * fixtureDuration)))
     buffer.frameLength = buffer.frameCapacity
     let samples = try XCTUnwrap(buffer.floatChannelData)[0]
     samples.initialize(repeating: 0, count: Int(buffer.frameLength))
@@ -16,11 +18,14 @@ final class PlayerPlaybackTests: XCTestCase {
       try file.write(from: buffer)
     }
 
-    let first = Episode(title: "Regression first", streamUrl: url.absoluteString, duration: 4)
-    let second = Episode(title: "Regression second", streamUrl: url.absoluteString, duration: 4)
+    let first = Episode(title: "Regression first", streamUrl: url.absoluteString, duration: fixtureDuration)
+    let second = Episode(title: "Regression second", streamUrl: url.absoluteString, duration: fixtureDuration)
     let avPlayer = AVPlayer()
     let player = Player(avPlayer: avPlayer)
-    defer { player.pause() }
+    defer {
+      player.pause()
+      avPlayer.replaceCurrentItem(with: nil)
+    }
 
     XCTAssertNotNil(ImagesLoader().image(for: first.imageURL()).cgImage)
     player.setup(for: [first, second])
@@ -44,7 +49,7 @@ final class PlayerPlaybackTests: XCTestCase {
     XCTAssertEqual(avPlayer.rate, 0)
     player.seek(to: 0.5)
     let sought = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-      abs(avPlayer.currentTime().seconds - 2) < 0.1
+      abs(avPlayer.currentTime().seconds - fixtureDuration / 2) < 0.1
     }, object: nil)
     wait(for: [sought], timeout: 10)
 

@@ -25,7 +25,9 @@ only dependency lockfile; regenerate it with `xcodebuild -resolvePackageDependen
 when updating the version in the spec. There is no root Swift package.
 
 The script uses checksum-verified XcodeGen 2.46.0 without a global installation.
-CI regenerates the project, rejects drift, and builds from the committed lockfile.
+CI regenerates the project, rejects drift, builds from the committed lockfile,
+and runs the regression tests serially. Test bundles/logs are uploaded on failure
+as well as success when available.
 
 ## Branching
 
@@ -54,12 +56,15 @@ xcodebuild -project Podcasts.xcodeproj -scheme Podcasts -destination 'generic/pl
 ```
 
 The `PodcastsTests` target contains image-placeholder and local playback
-regression tests. Run them with the shared `Podcasts` scheme on an available
-iOS simulator:
+regression tests. Run the same test runner as CI:
 
 ```sh
-xcodebuild -project Podcasts.xcodeproj -scheme Podcasts -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+bash scripts/run-tests.sh
 ```
+
+The runner creates and removes its own simulator using an installed iPhone
+device type/runtime. It leaves existing simulator data alone. Local `.xcresult`
+bundles and logs are kept under ignored `build/test-results/run.*/` directories.
 
 To refresh the booted simulator with the current branch:
 

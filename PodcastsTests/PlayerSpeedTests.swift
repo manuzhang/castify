@@ -1,0 +1,239 @@
+import AVFoundation
+import MediaPlayer
+import SwiftUI
+import UIKit
+import XCTest
+@testable import Castify
+
+final class PlayerSpeedTests: XCTestCase {
+  private var defaults: UserDefaults!
+  private var suiteName: String!
+
+  override func setUp() {
+    super.setUp()
+    suiteName = "Castify.PlayerSpeedTests." + UUID().uuidString
+    defaults = UserDefaults(suiteName: suiteName)
+  }
+
+  override func tearDown() {
+    defaults.removePersistentDomain(forName: suiteName)
+    defaults = nil
+    super.tearDown()
+  }
+
+  func testSpeedDefaultsToNormalAndInvalidSavedSelectionFallsBack() {
+    XCTAssertEqual(Player(userDefaults: defaults).playbackSpeed, .normal)
+    for invalid in [0, -1, 2.25] {
+      defaults.set(invalid, forKey: UserDefaults.playbackSpeedKey)
+      let avPlayer = AVPlayer()
+      let player = Player(avPlayer: avPlayer, userDefaults: defaults)
+      XCTAssertEqual(player.playbackSpeed, .normal)
+      XCTAssertFalse(player.isPlaying)
+      XCTAssertEqual(avPlayer.rate, 0)
+    }
+  }
+
+  func testSelectionPersistsAcrossPlayersWithoutStartingAudio() {
+    let avPlayer = AVPlayer()
+    let player = Player(avPlayer: avPlayer, userDefaults: defaults)
+    player.setPlaybackSpeed(.oneAndThreeQuarters)
+    XCTAssertEqual(defaults.float(forKey: UserDefaults.playbackSpeedKey), 1.75)
+    XCTAssertEqual(avPlayer.rate, 0)
+    let restoredAVPlayer = AVPlayer()
+    let restored = Player(avPlayer: restoredAVPlayer, userDefaults: defaults)
+    XCTAssertEqual(restored.playbackSpeed, .oneAndThreeQuarters)
+    XCTAssertEqual(restoredAVPlayer.rate, 0)
+    XCTAssertFalse(restored.isPlaying)
+  }
+
+  func testSpeedChangesApplyWhilePlayingAndPauseResumeRetainSelection() throws {
+    let fixture = try makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.url) }
+    let avPlayer = AVPlayer()
+    let player = Player(avPlayer: avPlayer, userDefaults: defaults)
+    defer { player.pause(); avPlayer.replaceCurrentItem(with: nil) }
+    player.setup(for: fixture.episodes)
+    waitUntilReady(avPlayer)
+    player.setPlaybackSpeed(.threeQuarters)
+    XCTAssertEqual(avPlayer.rate, 0)
+    player.play()
+    waitForPlayback(avPlayer, speed: 0.75)
+    player.setPlaybackSpeed(.double)
+    XCTAssertEqual(avPlayer.rate, 2)
+    XCTAssertTrue(player.isPlaying)
+    XCTAssertEqual(avPlayer.currentItem?.audioTimePitchAlgorithm, .timeDomain)
+
+    player.pause()
+    player.setPlaybackSpeed(.oneAndAHalf)
+    XCTAssertEqual(avPlayer.rate, 0)
+    XCTAssertFalse(player.isPlaying)
+    XCTAssertEqual(player.playbackSpeed, .oneAndAHalf)
+    player.play()
+    waitForPlayback(avPlayer, speed: 1.5)
+    XCTAssertTrue(player.isPlaying)
+  }
+
+  func testPausedEpisodeNavigationAndSeekDoNotStartPlayback() throws {
+    let fixture = try makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.url) }
+    let avPlayer = AVPlayer()
+    let player = Player(avPlayer: avPlayer, userDefaults: defaults)
+    defer { player.pause(); avPlayer.replaceCurrentItem(with: nil) }
+    player.setup(for: fixture.episodes)
+    waitUntilReady(avPlayer)
+    player.play()
+    waitForPlayback(avPlayer, speed: 1)
+    player.pause()
+    player.setPlaybackSpeed(.double)
+    player.next()
+    waitUntilReady(avPlayer)
+    XCTAssertEqual(player.current, fixture.episodes[1])
+    XCTAssertEqual(player.playbackSpeed, .double)
+    XCTAssertFalse(player.isPlaying)
+    XCTAssertEqual(avPlayer.rate, 0)
+    player.seek(to: 0.5)
+    let sought = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+      abs(avPlayer.currentTime().seconds - 30) < 0.1
+    }, object: nil)
+    wait(for: [sought], timeout: 10)
+    XCTAssertEqual(avPlayer.rate, 0)
+    player.previous()
+    waitUntilReady(avPlayer)
+    XCTAssertEqual(player.current, fixture.episodes[0])
+    XCTAssertEqual(player.playbackSpeed, .double)
+    XCTAssertFalse(player.isPlaying)
+    XCTAssertEqual(avPlayer.rate, 0)
+    player.play()
+    waitForPlayback(avPlayer, speed: 2)
+  }
+
+  func testPlayingNavigationAndExplicitEpisodeSelectionRetainSpeed() throws {
+    let fixture = try makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.url) }
+    let avPlayer = AVPlayer()
+    let player = Player(avPlayer: avPlayer, userDefaults: defaults)
+    defer { player.pause(); avPlayer.replaceCurrentItem(with: nil) }
+    player.setPlaybackSpeed(.oneAndAQuarter)
+    player.play(episode: fixture.episodes[0], in: fixture.episodes)
+    waitUntilReady(avPlayer)
+    waitForPlayback(avPlayer, speed: 1.25)
+    player.next()
+    waitUntilReady(avPlayer)
+    XCTAssertEqual(player.current, fixture.episodes[1])
+    waitForPlayback(avPlayer, speed: 1.25)
+    player.previous()
+    waitUntilReady(avPlayer)
+    XCTAssertEqual(player.current, fixture.episodes[0])
+    waitForPlayback(avPlayer, speed: 1.25)
+    player.pause()
+    player.playQueue([fixture.episodes[1], fixture.episodes[0]])
+    waitUntilReady(avPlayer)
+    XCTAssertEqual(player.current, fixture.episodes[1])
+    waitForPlayback(avPlayer, speed: 1.25)
+  }
+
+  func testNowPlayingReportsSelectedSpeedAndZeroWhilePaused() throws {
+    let fixture = try makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.url) }
+    let avPlayer = AVPlayer()
+    let center = MPNowPlayingInfoCenter.default()
+    let player = Player(avPlayer: avPlayer, systemPlayer: center, userDefaults: defaults)
+    defer { player.pause(); avPlayer.replaceCurrentItem(with: nil) }
+    player.setup(for: fixture.episodes)
+    waitUntilReady(avPlayer)
+    player.setPlaybackSpeed(.double)
+    XCTAssertEqual((center.nowPlayingInfo?[MPNowPlayingInfoPropertyPlaybackRate] as? NSNumber)?.floatValue, 0)
+    XCTAssertEqual((center.nowPlayingInfo?[MPNowPlayingInfoPropertyDefaultPlaybackRate] as? NSNumber)?.floatValue, 2)
+    player.play()
+    waitForPlayback(avPlayer, speed: 2)
+    player.setPlaybackSpeed(.oneAndThreeQuarters)
+    XCTAssertEqual((center.nowPlayingInfo?[MPNowPlayingInfoPropertyPlaybackRate] as? NSNumber)?.floatValue, 1.75)
+    player.pause()
+    XCTAssertEqual((center.nowPlayingInfo?[MPNowPlayingInfoPropertyPlaybackRate] as? NSNumber)?.floatValue, 0)
+    XCTAssertEqual((center.nowPlayingInfo?[MPNowPlayingInfoPropertyDefaultPlaybackRate] as? NSNumber)?.floatValue, 1.75)
+  }
+
+  func testPlayerControlRendersIdlePlayingAndPausedInEnglishAndChinese() throws {
+    let fixture = try makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.url) }
+    let avPlayer = AVPlayer()
+    let player = Player(avPlayer: avPlayer, userDefaults: defaults)
+    defer { player.pause(); avPlayer.replaceCurrentItem(with: nil) }
+    player.setup(for: fixture.episodes)
+    waitUntilReady(avPlayer)
+    let localization = LocalizationService(userDefaults: defaults)
+    for language in [AppLanguage.english, .chinese] {
+      localization.setLanguage(language)
+      player.pause()
+      player.setup(for: [])
+      player.setup(for: fixture.episodes)
+      waitUntilReady(avPlayer)
+      player.setPlaybackSpeed(.threeQuarters)
+      attachPlayerImage(player, localization: localization, name: "\(language.rawValue)-idle-0.75x", width: 320)
+      player.play()
+      waitForPlayback(avPlayer, speed: 0.75)
+      player.setPlaybackSpeed(.double)
+      attachPlayerImage(player, localization: localization, name: "\(language.rawValue)-playing-2x", width: 320)
+      player.pause()
+      player.setPlaybackSpeed(.oneAndAHalf)
+      attachPlayerImage(player, localization: localization, name: "\(language.rawValue)-paused-1.5x", width: 320)
+      XCTAssertEqual(avPlayer.rate, 0)
+    }
+  }
+
+  private func makeFixture() throws -> (url: URL, episodes: [Episode]) {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".caf")
+    let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1))
+    let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 44100 * 60))
+    buffer.frameLength = buffer.frameCapacity
+    try XCTUnwrap(buffer.floatChannelData)[0].initialize(repeating: 0, count: Int(buffer.frameLength))
+    do {
+      let file = try AVAudioFile(forWriting: url, settings: format.settings)
+      try file.write(from: buffer)
+    }
+    return (url, [
+      Episode(title: "Playback speed regression first episode", author: "Castify Test", streamUrl: url.absoluteString, duration: 60),
+      Episode(title: "Playback speed regression second episode", author: "Castify Test", streamUrl: url.absoluteString, duration: 60)
+    ])
+  }
+
+  private func waitUntilReady(_ player: AVPlayer) {
+    let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+      player.currentItem?.status == .readyToPlay
+    }, object: nil)
+    wait(for: [ready], timeout: 15)
+  }
+
+  private func waitForPlayback(_ player: AVPlayer, speed: Float) {
+    let playing = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+      player.rate == speed && player.currentTime().seconds > 0.1
+    }, object: nil)
+    wait(for: [playing], timeout: 15)
+  }
+
+  private func attachPlayerImage(_ player: Player, localization: LocalizationService, name: String, width: CGFloat) {
+    let view = VStack(spacing: 0) {
+      Spacer()
+      PlayerView(player: player)
+    }.environmentObject(localization)
+    let hosting = UIHostingController(rootView: view)
+    let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+    let previous = scene?.windows.first(where: { $0.isKeyWindow })
+    let window = scene.map(UIWindow.init(windowScene:)) ?? UIWindow()
+    window.frame = CGRect(x: 0, y: 0, width: width, height: 568)
+    window.rootViewController = hosting
+    window.makeKeyAndVisible()
+    defer { window.isHidden = true; previous?.makeKey() }
+    hosting.view.layoutIfNeeded()
+    let drawn = expectation(description: "SwiftUI render")
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { drawn.fulfill() }
+    wait(for: [drawn], timeout: 3)
+    let image = UIGraphicsImageRenderer(bounds: hosting.view.bounds).image { _ in
+      hosting.view.drawHierarchy(in: hosting.view.bounds, afterScreenUpdates: true)
+    }
+    let attachment = XCTAttachment(image: image)
+    attachment.name = "player-speed-" + name
+    attachment.lifetime = .keepAlways
+    add(attachment)
+  }
+}

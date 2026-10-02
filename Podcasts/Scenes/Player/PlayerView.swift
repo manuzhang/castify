@@ -6,6 +6,7 @@ struct PlayerView: View {
   @ObservedObject var player: Player
   @EnvironmentObject var localization: LocalizationService
   @State private var isShowingQueue = false
+  @State private var isShowingSpeedOptions = false
   @State private var queueEpisodes = [Episode]()
   @State private var isShowingInProgressQueue = false
   private let podcastsService = PodcastsService()
@@ -50,6 +51,16 @@ struct PlayerView: View {
               .font(.caption)
               .foregroundColor(.secondary)
               .lineLimit(1)
+
+            Button(action: { self.isShowingSpeedOptions = true }) {
+              Text(player.playbackSpeed.title)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .frame(minWidth: 44, minHeight: 44)
+            }
+            .accessibility(label: Text(localization.text(.playbackSpeed)))
+            .accessibility(value: Text(player.playbackSpeed.title))
+            .accessibility(identifier: "playback-speed")
 
             Button(action: showQueue) {
               Image(systemName: "list.bullet")
@@ -125,6 +136,16 @@ struct PlayerView: View {
             }
           )
           .environmentObject(self.localization)
+        }
+        .actionSheet(isPresented: $isShowingSpeedOptions) {
+          ActionSheet(
+            title: Text(self.localization.text(.playbackSpeed)),
+            buttons: PlaybackSpeed.allCases.map { speed in
+              .default(Text((speed == self.player.playbackSpeed ? "✓ " : "") + speed.title)) {
+                self.player.setPlaybackSpeed(speed)
+              }
+            } + [.cancel(Text(self.localization.text(.cancel)))]
+          )
         }
       }
     }

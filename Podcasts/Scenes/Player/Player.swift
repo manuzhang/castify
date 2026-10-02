@@ -3,6 +3,19 @@ import AVFoundation
 import MediaPlayer
 import Combine
 
+enum PlaybackSpeed: Float, CaseIterable {
+  case threeQuarters = 0.75
+  case normal = 1
+  case oneAndAQuarter = 1.25
+  case oneAndAHalf = 1.5
+  case oneAndThreeQuarters = 1.75
+  case double = 2
+
+  var title: String {
+    String(format: "%g×", Double(rawValue))
+  }
+}
+
 class Player: ObservableObject {
 
   enum State {
@@ -17,6 +30,7 @@ class Player: ObservableObject {
   @Published var progress: Float = 0
   @Published var elapsedTime: TimeInterval = 0
   @Published var duration: TimeInterval = 0
+  @Published private(set) var playbackSpeed: PlaybackSpeed
 
   @Published var current: Episode?
   private var episodes: [Episode] = []
@@ -26,6 +40,7 @@ class Player: ObservableObject {
   private let systemPlayer: MPNowPlayingInfoCenter
   private let commandCenter: MPRemoteCommandCenter
   private let podcastsService: PodcastsService
+  private let userDefaults: UserDefaults
   private var timeObserverToken: Any?
 
   init(avPlayer: AVPlayer = AVPlayer(),
@@ -33,13 +48,16 @@ class Player: ObservableObject {
        notificationCenter: NotificationCenter = .default,
        systemPlayer: MPNowPlayingInfoCenter = MPNowPlayingInfoCenter.default(),
        commandCenter: MPRemoteCommandCenter = MPRemoteCommandCenter.shared(),
-       podcastsService: PodcastsService = PodcastsService()) {
+       podcastsService: PodcastsService = PodcastsService(),
+       userDefaults: UserDefaults = .standard) {
     self.avPlayer = avPlayer
     self.avSession = avSession
     self.notificationCenter = notificationCenter
     self.systemPlayer = systemPlayer
     self.commandCenter = commandCenter
     self.podcastsService = podcastsService
+    self.userDefaults = userDefaults
+    playbackSpeed = PlaybackSpeed(rawValue: userDefaults.float(forKey: UserDefaults.playbackSpeedKey)) ?? .normal
     self.notificationCenter.addObserver(self, selector: #selector(self.didPlayToEnd),
       name: .AVPlayerItemDidPlayToEndTime, object: nil)
     let interval = CMTime(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
@@ -160,18 +178,33 @@ class Player: ObservableObject {
     pauseNow()
   }
 
+  func setPlaybackSpeed(_ speed: PlaybackSpeed) {
+    // Finish the current listening interval at its old rate before changing it.
+    if isPlaying {
+      didUpdatedPlayer(time: avPlayer.currentTime())
+    }
+    playbackSpeed = speed
+    userDefaults.set(speed.rawValue, forKey: UserDefaults.playbackSpeedKey)
+    // A speed change must not start idle or paused audio. Use intended playback
+    // state so the chosen rate also applies while buffering.
+    if isPlaying {
+      avPlayer.rate = speed.rawValue
+    }
+    notifySystemPlayer(episode: current)
+  }
+
   func previous() {
     guard let previousEpisode = previousEpisode() else {
       return
     }
-    playNow(next: previousEpisode)
+    load(previousEpisode, in: episodes, autoplay: isPlaying)
   }
 
   func next() {
     guard let nextEpisode = nextEpisode() else {
       return
     }
-    self.playNow(next: nextEpisode)
+    load(nextEpisode, in: episodes, autoplay: isPlaying)
   }
 
   func seek(to progress: Float) {
@@ -341,11 +374,14 @@ class Player: ObservableObject {
       return
     }
     if current != next {
-      self.avPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
+      if isPlaying {
+        didUpdatedPlayer(time: avPlayer.currentTime())
+      }
+      self.avPlayer.replaceCurrentItem(with: makePlayerItem(url: url))
       restorePlaybackPosition(for: next)
     }
     current = next
-    avPlayer.play()
+    avPlayer.rate = playbackSpeed.rawValue
     try? avSession.setActive(true)
     self.notificationCenter.removeObserver(self, name: AVAudioSession.interruptionNotification, object: nil)
     notificationCenter.addObserver(self, selector: #selector(self.didArriveInterruption),
@@ -358,7 +394,11 @@ class Player: ObservableObject {
     guard let episode = current else {
       return
     }
+    let previousElapsedTime = elapsedTime
     updateProgress(time: avPlayer.currentTime())
+    if isPlaying {
+      recordListeningTime(from: previousElapsedTime, to: elapsedTime)
+    }
     podcastsService.savePlaybackPosition(
       for: episode,
       elapsedTime: elapsedTime,
@@ -384,7 +424,8 @@ class Player: ObservableObject {
       MPMediaItemPropertyTitle: episode.title,
       MPMediaItemPropertyArtist: episode.author,
       MPNowPlayingInfoPropertyElapsedPlaybackTime: elapsedTime,
-      MPNowPlayingInfoPropertyPlaybackRate: isPlayingNow() ? 1 : 0,
+      MPNowPlayingInfoPropertyPlaybackRate: isPlayingNow() ? playbackSpeed.rawValue : 0,
+      MPNowPlayingInfoPropertyDefaultPlaybackRate: playbackSpeed.rawValue,
       MPMediaItemPropertyPlaybackDuration: duration,
     ]
     systemPlayer.nowPlayingInfo = info
@@ -400,12 +441,18 @@ class Player: ObservableObject {
       return
     }
 
+    if isPlaying {
+      didUpdatedPlayer(time: avPlayer.currentTime())
+    }
+    if !autoplay {
+      avPlayer.pause()
+    }
     self.episodes = episodes
     let isNewEpisode = current != episode
     current = episode
 
     if isNewEpisode || avPlayer.currentItem == nil {
-      avPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
+      avPlayer.replaceCurrentItem(with: makePlayerItem(url: url))
       if restorePosition {
         restorePlaybackPosition(for: episode)
       } else {
@@ -417,7 +464,14 @@ class Player: ObservableObject {
       playNow(next: episode)
     } else {
       state = .idle(episodes: episodes)
+      notifySystemPlayer(episode: episode)
     }
+  }
+
+  private func makePlayerItem(url: URL) -> AVPlayerItem {
+    let item = AVPlayerItem(url: url)
+    item.audioTimePitchAlgorithm = .timeDomain
+    return item
   }
 
   private func reset() {
@@ -485,7 +539,8 @@ class Player: ObservableObject {
       return
     }
 
-    podcastsService.recordListeningTime(seconds)
+    // The media timeline advances faster/slower than actual listening time.
+    podcastsService.recordListeningTime(seconds / Double(playbackSpeed.rawValue))
   }
 
   private func validSeconds(from time: CMTime) -> TimeInterval {

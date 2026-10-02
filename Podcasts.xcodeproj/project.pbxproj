@@ -23,6 +23,7 @@
 		45C64D4ECC57BD74B674C5F2 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BEC8CA3B24B96523AAD6F2F6 /* LaunchScreen.storyboard */; };
 		4AD28E2946AFDD4DE22617DE /* PodcastHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9674660270C8FBF433D6451 /* PodcastHeaderView.swift */; };
 		503E80DDACA1947DCDF1DC4F /* Podcast.swift in Sources */ = {isa = PBXBuildFile; fileRef = D50CEC199379C4B683A17006 /* Podcast.swift */; };
+		50E6EE216BA90514D7989295 /* PlayerSpeedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60C87BF5B42029E67E87269 /* PlayerSpeedTests.swift */; };
 		51D2C5BBD3D79FD1C35F5805 /* UIImage+Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4336200054A8AC2ACFC76C88 /* UIImage+Color.swift */; };
 		540212563CA7A70AE86C5549 /* PodcastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4AF356E364CD35D63A68E9F /* PodcastView.swift */; };
 		555E3F2AF70EE6CB2F60F927 /* UIApplicationExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91A067BA9D5DFF7EE3D1032C /* UIApplicationExtension.swift */; };
@@ -120,6 +121,7 @@
 		B07A5CE2C9B4AFBAA2249177 /* EpisodeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodeViewModel.swift; sourceTree = "<group>"; };
 		B124F801EFD5892F413819E5 /* PlayerPlaybackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerPlaybackTests.swift; sourceTree = "<group>"; };
 		B56E5D52541222C0393517F7 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
+		B60C87BF5B42029E67E87269 /* PlayerSpeedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSpeedTests.swift; sourceTree = "<group>"; };
 		B8AFABDCAF7F14FCAE16A4AC /* EpisodeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodeRow.swift; sourceTree = "<group>"; };
 		B9674660270C8FBF433D6451 /* PodcastHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastHeaderView.swift; sourceTree = "<group>"; };
 		C4AF356E364CD35D63A68E9F /* PodcastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastView.swift; sourceTree = "<group>"; };
@@ -380,6 +382,7 @@
 			isa = PBXGroup;
 			children = (
 				B124F801EFD5892F413819E5 /* PlayerPlaybackTests.swift */,
+				B60C87BF5B42029E67E87269 /* PlayerSpeedTests.swift */,
 				AF855F577F0CA87B08147173 /* UIImageColorTests.swift */,
 			);
 			path = PodcastsTests;
@@ -488,6 +491,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				00F8A37ED8256D727EFB8510 /* PlayerPlaybackTests.swift in Sources */,
+				50E6EE216BA90514D7989295 /* PlayerSpeedTests.swift in Sources */,
 				7AFCAED8FE6F91CB6BEB66C0 /* UIImageColorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

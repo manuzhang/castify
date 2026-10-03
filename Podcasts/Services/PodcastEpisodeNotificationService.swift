@@ -188,7 +188,9 @@ final class PodcastEpisodeNotificationService {
       Self.onMain {
         guard let self = self else { return }
         self.globalPreferenceDidChange()
-        guard self.isCurrent(refresh), self.store.globalEnabled,
+        // Discovery has already been committed. A later refresh must not
+        // discard this delivery; preference/subscription generations still gate it.
+        guard self.isEligible(refresh), self.store.globalEnabled,
               Self.allowsAlerts(status),
               let podcast = self.subscriptions().first(where: { Self.feedKey($0.feedUrl) == refresh.feed }) else { return }
         let content = UNMutableNotificationContent()

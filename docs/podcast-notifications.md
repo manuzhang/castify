@@ -17,7 +17,7 @@ notification delegate and rechecks the current global/subscription preference.
 - An opt-in establishes its baseline from the next successful network refresh;
   cached screen contents are not used. That first snapshot is never announced.
 - Subsequent snapshots identify episodes by RSS GUID, then enclosure URL, then
-  reliably parsed publication date/title/author. Identities are SHA-256 hashes
+  reliably parsed publication date/title/author. RFC 822 dates may omit seconds. Identities are SHA-256 hashes
   scoped to a normalized subscription feed URL. Added optional episode fields
   remain compatible with old cached JSON; playback equality is unchanged.
 - An episode must be unseen and have a valid publication date later than the
@@ -64,8 +64,10 @@ notifications in notification history.
 All notification state is handled on the main thread. The newest-started refresh
 for a feed wins; out-of-order responses, including an older response after a newer
 failure, cannot establish a baseline or schedule an alert. Failed refreshes do not
-advance a cutoff. A late permission callback rechecks the refresh generation,
-subscription, global preference and sequence. A late add completion cancels its
+advance a cutoff. Non-RSS XML payloads are rejected before changing alert state;
+valid empty RSS channels remain successful snapshots. A late permission callback
+rechecks the refresh generation, subscription and global preference. Once a
+discovery is committed, a later refresh does not discard its pending delivery. A late add completion cancels its
 own obsolete identifier. Cancellation queries include the old generation so they
 cannot cancel alerts from a replacement opt-in.
 
@@ -151,3 +153,20 @@ generic simulator build, and **58 tests, 0 failures, 0 skips** (36 notification
 preference/delivery/race tests). Bundle/log: `build/test-results/run.GAQcH9/Tests.xcresult`
 and `xcodebuild.log`; build log: `/tmp/castify-podcast-notifications-recovery-build.log`;
 summary: `/tmp/castify-podcast-notifications-recovery-test-summary.json`.
+
+The next RSS/discovery review findings are addressed too: valid RSS dates without
+seconds retain known publication times; committed discoveries remain eligible
+for delivery if a later refresh begins during authorization lookup; and non-RSS
+XML cannot establish or advance the notification baseline. Empty RSS channels
+remain accepted. Four added regressions cover date variants/time zones, successful
+and failed later refreshes, structural payload validation, and stubbed 2xx error
+payloads before and after a baseline.
+
+This validation passed drift-free XcodeGen generation, the generic simulator
+build, and **62 tests, 0 failures, 0 skips**: 37 notification-state tests, 6 parser/
+identity/cache tests, 3 stub-network refresh tests, 1 bilingual UI render test, and
+15 existing playback/speed/artwork tests. Bundle/log:
+`build/test-results/run.k1NVNc/Tests.xcresult` and `xcodebuild.log`; build log:
+`/tmp/castify-podcast-notifications-feed-review-build.log`; summary:
+`/tmp/castify-podcast-notifications-feed-review-test-summary.json`. Device/UI
+limitations documented above are unchanged.

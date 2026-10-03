@@ -412,6 +412,30 @@ final class PodcastEpisodeNotificationTests: XCTestCase {
     XCTAssertEqual(center.pending.values.first?.content.body, "Episode replacement")
   }
 
+  func testAcceptedDiscoverySurvivesNewRefreshDuringAuthorization() {
+    for newerSucceeds in [false, true] {
+      service.setEnabled(false, for: podcast)
+      center.deferAuthorization = true
+      baseline()
+      newRefresh()
+      let committed = center.authorizations.removeFirst()
+      let newer = service.beginRefresh(feedURL: podcast.feedUrl)
+      if newerSucceeds {
+        fixture.time.addTimeInterval(10)
+        service.completeRefresh(newer, episodes: [episode("new", at: fixture.time.timeIntervalSince1970 - 20)])
+      }
+      // With no completion the newer request represents a failed refresh.
+      XCTAssertNotNil(newer)
+      let count = center.requests.count
+      committed(.authorized)
+      XCTAssertEqual(center.requests.count, count + 1)
+      XCTAssertEqual(center.requests.last?.content.body, "Episode new")
+      fixture.time.addTimeInterval(10)
+      refresh([episode("new", at: fixture.time.timeIntervalSince1970 - 30)])
+      XCTAssertTrue(center.authorizations.isEmpty)
+    }
+  }
+
   func testAddFailureDoesNotReplayOnNextRefresh() {
     baseline()
     center.addError = NSError(domain: "notification-test", code: 1)
@@ -608,6 +632,25 @@ final class PodcastNotificationIdentityTests: XCTestCase {
     }
   }
 
+  func testRFC822DatesWithoutSecondsHaveKnownPublicationTimes() throws {
+    let expected = try XCTUnwrap(ISO8601DateFormatter().date(from: "2002-10-02T08:00:00Z"))
+    for date in ["Wed, 02 Oct 2002 08:00 +0000", "Wed, 2 Oct 2002 08:00 +0000",
+                 "02 Oct 2002 08:00 +0000", "2 Oct 2002 10:00 +0200", "Wed, 2 Oct 2002 08:00 GMT"] {
+      let item = try XCTUnwrap(parse("<title>Valid</title><pubDate>\(date)</pubDate>").episodes.first)
+      XCTAssertEqual(item.notificationPublicationDate, expected, date)
+      XCTAssertEqual(item.publicationDateIsKnown, true)
+    }
+  }
+
+  func testParserRejectsNonRSSDocumentsAndAllowsEmptyChannels() throws {
+    let parser = PodcastFeedParser()
+    for xml in ["<error/>", "<html><body>Unavailable</body></html>", "<rss/>",
+                "<wrapper><rss><channel/></rss></wrapper>", "<rss><channel/><channel/></rss>"] {
+      XCTAssertThrowsError(try parser.parse(data: Data(xml.utf8)), xml)
+    }
+    XCTAssertTrue(try parser.parse(data: Data("<rss><channel/></rss>".utf8)).episodes.isEmpty)
+  }
+
   func testOlderEpisodeCacheDecodesWithoutGUID() throws {
     let episode = Episode(title: "Legacy", streamUrl: "https://example.test/one.mp3")
     var object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(episode)) as? [String: Any])
@@ -706,7 +749,11 @@ final class PodcastNotificationRefreshTests: XCTestCase {
     try verifyRefreshes(firstFails: true)
   }
 
-  private func verifyRefreshes(firstFails: Bool) throws {
+  func testInvalidXMLPayloadCannotEstablishOrAdvanceNotificationBaseline() throws {
+    try verifyRefreshes(firstFails: true, invalidPayload: true)
+  }
+
+  private func verifyRefreshes(firstFails: Bool, invalidPayload: Bool = false) throws {
     let suite = "Castify.NotificationRefreshTests." + UUID().uuidString
     let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
     defer { defaults.removePersistentDomain(forName: suite); StubAlertFeedProtocol.responses = [] }
@@ -725,7 +772,8 @@ final class PodcastNotificationRefreshTests: XCTestCase {
     let networking = NetworkingService(notificationService: service, feedSession: session)
     let url = try XCTUnwrap(URL(string: podcast.feedUrl))
     if firstFails {
-      StubAlertFeedProtocol.responses = [.failure(NSError(domain: "stub-feed", code: 1))]
+      StubAlertFeedProtocol.responses = invalidPayload ? [.success(Data("<error/>".utf8))] :
+        [.failure(NSError(domain: "stub-feed", code: 1))]
       let failed = expectation(description: "Feed error")
       networking.fetchPodcastFeed(url: url) { result in
         if case .success = result { XCTFail("Expected stubbed error") }
@@ -735,6 +783,17 @@ final class PodcastNotificationRefreshTests: XCTestCase {
     }
     for (guid, timestamp) in [("baseline", 50.0), ("new", 110.0)] {
       fixture.time = Date(timeIntervalSince1970: guid == "baseline" ? 100 : 120)
+      if invalidPayload && guid == "new" {
+        fixture.time = Date(timeIntervalSince1970: 150)
+        StubAlertFeedProtocol.responses = [.success(Data("<error/>".utf8))]
+        let rejected = expectation(description: "Invalid document after baseline")
+        networking.fetchPodcastFeed(url: url) { result in
+          if case .success = result { XCTFail("Expected invalid RSS rejection") }
+          rejected.fulfill()
+        }
+        wait(for: [rejected], timeout: 5)
+        fixture.time = Date(timeIntervalSince1970: 160)
+      }
       let date = ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: timestamp))
       StubAlertFeedProtocol.responses = [.success(Data("<rss><channel><item><title>Stub \(guid)</title><guid>\(guid)</guid><pubDate>\(date)</pubDate><enclosure url='https://feed-alert-tests.invalid/\(guid).mp3'/></item></channel></rss>".utf8))]
       let loaded = expectation(description: "Feed success")

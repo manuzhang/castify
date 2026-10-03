@@ -57,6 +57,7 @@ final class PodcastFeedParser: NSObject {
   private var currentEpisode: EpisodeDraft?
   private var elementStack = [String]()
   private var textStack = [String]()
+  private var channelCount = 0
 
   func parse(data: Data) throws -> ParsedPodcastFeed {
     feedDescription = ""
@@ -65,11 +66,14 @@ final class PodcastFeedParser: NSObject {
     currentEpisode = nil
     elementStack = []
     textStack = []
+    channelCount = 0
 
     let parser = XMLParser(data: data)
     parser.delegate = self
 
-    if parser.parse() {
+    // Well-formed error/HTML XML is not a successful RSS snapshot. An empty
+    // RSS channel is valid, so do not require episodes to establish a baseline.
+    if parser.parse(), channelCount == 1 {
       return ParsedPodcastFeed(
         description: feedDescription.strippingHTML,
         imageUrl: feedImageUrl,
@@ -98,6 +102,10 @@ final class PodcastFeedParser: NSObject {
       "E, dd MMM yyyy HH:mm:ss Z",
       "d MMM yyyy HH:mm:ss Z",
       "dd MMM yyyy HH:mm:ss Z",
+      "E, d MMM yyyy HH:mm Z",
+      "E, dd MMM yyyy HH:mm Z",
+      "d MMM yyyy HH:mm Z",
+      "dd MMM yyyy HH:mm Z",
       "yyyy-MM-dd'T'HH:mm:ssZ",
       "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
     ]
@@ -146,7 +154,9 @@ extension PodcastFeedParser: XMLParserDelegate {
     elementStack.append(element)
     textStack.append("")
 
-    if element == "item" {
+    if elementStack == ["rss", "channel"] { channelCount += 1 }
+
+    if elementStack == ["rss", "channel", "item"] {
       currentEpisode = EpisodeDraft()
       return
     }

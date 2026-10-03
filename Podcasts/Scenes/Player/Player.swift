@@ -2,6 +2,7 @@ import Foundation
 import AVFoundation
 import MediaPlayer
 import Combine
+import UIKit
 
 enum PlaybackSpeed: Float, CaseIterable {
   case threeQuarters = 0.75
@@ -31,6 +32,8 @@ class Player: ObservableObject {
   @Published var elapsedTime: TimeInterval = 0
   @Published var duration: TimeInterval = 0
   @Published private(set) var playbackSpeed: PlaybackSpeed
+  @Published private(set) var sleepTimerRemaining: TimeInterval?
+  @Published private(set) var sleepTimerDuration: SleepTimerDuration?
 
   @Published var current: Episode?
   private var episodes: [Episode] = []
@@ -42,6 +45,9 @@ class Player: ObservableObject {
   private let podcastsService: PodcastsService
   private let userDefaults: UserDefaults
   private var timeObserverToken: Any?
+  private let sleepTimer: PlayerSleepTimer
+  private var sleepTimerDidExpire = false
+  private var resumeAfterInterruption = false
 
   init(avPlayer: AVPlayer = AVPlayer(),
        avSession: AVAudioSession = AVAudioSession.sharedInstance(),
@@ -49,7 +55,8 @@ class Player: ObservableObject {
        systemPlayer: MPNowPlayingInfoCenter = MPNowPlayingInfoCenter.default(),
        commandCenter: MPRemoteCommandCenter = MPRemoteCommandCenter.shared(),
        podcastsService: PodcastsService = PodcastsService(),
-       userDefaults: UserDefaults = .standard) {
+       userDefaults: UserDefaults = .standard,
+       sleepTimer: PlayerSleepTimer = PlayerSleepTimer()) {
     self.avPlayer = avPlayer
     self.avSession = avSession
     self.notificationCenter = notificationCenter
@@ -57,12 +64,33 @@ class Player: ObservableObject {
     self.commandCenter = commandCenter
     self.podcastsService = podcastsService
     self.userDefaults = userDefaults
+    self.sleepTimer = sleepTimer
     playbackSpeed = PlaybackSpeed(rawValue: userDefaults.float(forKey: UserDefaults.playbackSpeedKey)) ?? .normal
     self.notificationCenter.addObserver(self, selector: #selector(self.didPlayToEnd),
       name: .AVPlayerItemDidPlayToEndTime, object: nil)
     let interval = CMTime(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
     self.timeObserverToken = self.avPlayer.addPeriodicTimeObserver(forInterval: interval, queue: DispatchQueue.main,
-      using: didUpdatedPlayer)
+      using: { [weak self] time in self?.didUpdatedPlayer(time: time) })
+    sleepTimer.onUpdate = { [weak self] duration, remaining in
+      self?.sleepTimerDuration = duration
+      self?.sleepTimerRemaining = remaining
+    }
+    sleepTimer.onExpiry = { [weak self] in
+      guard let self = self else { return }
+      self.sleepTimerDidExpire = true
+      self.resumeAfterInterruption = false
+      self.pauseNow()
+    }
+    for name in [UIApplication.willEnterForegroundNotification,
+                 UIApplication.didBecomeActiveNotification,
+                 UIApplication.didEnterBackgroundNotification,
+                 UIScene.willEnterForegroundNotification,
+                 UIScene.didActivateNotification,
+                 UIScene.didEnterBackgroundNotification] {
+      notificationCenter.addObserver(self, selector: #selector(didChangeApplicationActivity), name: name, object: nil)
+    }
+    notificationCenter.addObserver(self, selector: #selector(self.didArriveInterruption),
+      name: AVAudioSession.interruptionNotification, object: nil)
     try? avSession.setCategory(AVAudioSession.Category.playback,
       mode: AVAudioSession.Mode.default,
       options: [.allowBluetooth, .allowAirPlay, .defaultToSpeaker])
@@ -119,6 +147,7 @@ class Player: ObservableObject {
     guard let episode = current else {
       return
     }
+    prepareForExplicitPlayback()
     playNow(next: episode)
   }
 
@@ -134,6 +163,7 @@ class Player: ObservableObject {
       queue.insert(episode, at: 0)
     }
 
+    prepareForExplicitPlayback()
     load(episode, in: queue, autoplay: true)
   }
 
@@ -149,6 +179,7 @@ class Player: ObservableObject {
       queue.insert(episode, at: 0)
     }
 
+    prepareForExplicitPlayback()
     load(episode, in: queue, autoplay: true, restorePosition: false)
     seek(toTime: time)
   }
@@ -159,6 +190,7 @@ class Player: ObservableObject {
       return
     }
 
+    prepareForExplicitPlayback()
     load(first, in: playableEpisodes, autoplay: true)
   }
 
@@ -175,7 +207,28 @@ class Player: ObservableObject {
   }
 
   func pause() {
+    resumeAfterInterruption = false
     pauseNow()
+  }
+
+  func setSleepTimer(_ duration: SleepTimerDuration) {
+    sleepTimer.start(duration)
+  }
+
+  func cancelSleepTimer() {
+    sleepTimer.cancel()
+  }
+
+  var sleepTimerCountdown: String? {
+    guard let remaining = sleepTimerRemaining else { return nil }
+    let seconds = Int(ceil(remaining))
+    return String(format: "%02d:%02d", seconds / 60, seconds % 60)
+  }
+
+  private func prepareForExplicitPlayback() {
+    sleepTimer.reconcile()
+    sleepTimerDidExpire = false
+    resumeAfterInterruption = false
   }
 
   func setPlaybackSpeed(_ speed: PlaybackSpeed) {
@@ -194,6 +247,7 @@ class Player: ObservableObject {
   }
 
   func previous() {
+    sleepTimer.reconcile()
     guard let previousEpisode = previousEpisode() else {
       return
     }
@@ -201,6 +255,7 @@ class Player: ObservableObject {
   }
 
   func next() {
+    sleepTimer.reconcile()
     guard let nextEpisode = nextEpisode() else {
       return
     }
@@ -298,7 +353,14 @@ class Player: ObservableObject {
 
   // MARK: NotificationCenter
 
-  @objc private func didPlayToEnd() {
+  @objc private func didPlayToEnd(_ notification: Notification) {
+    guard Thread.isMainThread else {
+      DispatchQueue.main.async { [weak self] in self?.didPlayToEnd(notification) }
+      return
+    }
+    guard let endedItem = notification.object as? AVPlayerItem,
+          endedItem === avPlayer.currentItem, isPlaying else { return }
+    guard !sleepTimer.reconcile(), !sleepTimerDidExpire else { return }
     if let episode = current {
       podcastsService.recordFinishedEpisode()
       podcastsService.markEpisodePlayed(episode)
@@ -314,9 +376,18 @@ class Player: ObservableObject {
     playNow(next: next)
   }
 
+  @objc private func didChangeApplicationActivity() {
+    if Thread.isMainThread {
+      sleepTimer.reconcile()
+    } else {
+      DispatchQueue.main.async { [weak self] in self?.sleepTimer.reconcile() }
+    }
+  }
+
   // MARK: Player
 
   @objc private func didUpdatedPlayer(time: CMTime) {
+    sleepTimer.reconcile()
     switch state {
     case .empty, .paused, .finish, .idle:
       return
@@ -377,15 +448,14 @@ class Player: ObservableObject {
       if isPlaying {
         didUpdatedPlayer(time: avPlayer.currentTime())
       }
+      guard !sleepTimerDidExpire else { return }
       self.avPlayer.replaceCurrentItem(with: makePlayerItem(url: url))
       restorePlaybackPosition(for: next)
     }
+    guard !sleepTimerDidExpire else { return }
     current = next
     avPlayer.rate = playbackSpeed.rawValue
     try? avSession.setActive(true)
-    self.notificationCenter.removeObserver(self, name: AVAudioSession.interruptionNotification, object: nil)
-    notificationCenter.addObserver(self, selector: #selector(self.didArriveInterruption),
-      name: AVAudioSession.interruptionNotification, object: nil)
     notifySystemPlayer(episode: next)
     state = .playing(episode: next, progress: progress)
   }
@@ -405,7 +475,6 @@ class Player: ObservableObject {
       duration: duration
     )
     self.avPlayer.pause()
-    self.notificationCenter.removeObserver(self, name: AVAudioSession.interruptionNotification, object: nil)
     notifySystemPlayer(episode: episode)
     state = .paused(episode: episode, progress: progress)
   }
@@ -632,13 +701,22 @@ class Player: ObservableObject {
   // MARK: Interruptions
 
   @objc private func didArriveInterruption(notification: NSNotification) {
+    guard Thread.isMainThread else {
+      DispatchQueue.main.async { [weak self] in self?.didArriveInterruption(notification: notification) }
+      return
+    }
     if let value = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? NSNumber,
        let type = AVAudioSession.InterruptionType(rawValue: value.uintValue) {
       switch type {
       case .began:
-        pause()
+        resumeAfterInterruption = isPlaying
+        pauseNow()
       case .ended:
-        play()
+        let shouldResume = resumeAfterInterruption
+        resumeAfterInterruption = false
+        guard !sleepTimer.reconcile(), !sleepTimerDidExpire, shouldResume,
+              let episode = current else { return }
+        playNow(next: episode)
       @unknown default:
         break
       }

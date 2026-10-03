@@ -3,10 +3,15 @@ import SwiftUI
 
 struct PlayerView: View {
 
+  private enum OptionsSheet: String, Identifiable {
+    case speed, sleepTimer
+    var id: String { rawValue }
+  }
+
   @ObservedObject var player: Player
   @EnvironmentObject var localization: LocalizationService
   @State private var isShowingQueue = false
-  @State private var isShowingSpeedOptions = false
+  @State private var optionsSheet: OptionsSheet?
   @State private var queueEpisodes = [Episode]()
   @State private var isShowingInProgressQueue = false
   private let podcastsService = PodcastsService()
@@ -52,7 +57,7 @@ struct PlayerView: View {
               .foregroundColor(.secondary)
               .lineLimit(1)
 
-            Button(action: { self.isShowingSpeedOptions = true }) {
+            Button(action: { self.optionsSheet = .speed }) {
               Text(player.playbackSpeed.title)
                 .font(.caption)
                 .fontWeight(.semibold)
@@ -68,6 +73,37 @@ struct PlayerView: View {
             }
             .accessibility(label: Text(localization.text(.upNext)))
           }
+
+          HStack(spacing: 8) {
+            Button(action: { self.optionsSheet = .sleepTimer }) {
+              HStack(spacing: 6) {
+                Image(systemName: player.sleepTimerRemaining == nil ? "moon" : "moon.fill")
+                Text(localization.text(.sleepTimer))
+                if let countdown = player.sleepTimerCountdown {
+                  Text(countdown).font(.system(.caption, design: .monospaced))
+                }
+              }
+              .frame(minHeight: 44)
+              .lineLimit(1)
+              .minimumScaleFactor(0.8)
+            }
+            .accessibility(label: Text(localization.text(.sleepTimer)))
+            .accessibility(value: Text(player.sleepTimerCountdown ?? localization.text(.sleepTimerOff)))
+            .accessibility(identifier: "sleep-timer")
+
+            Spacer(minLength: 0)
+
+            if player.sleepTimerRemaining != nil {
+              Button(action: { self.player.cancelSleepTimer() }) {
+                Text(localization.text(.cancelSleepTimer))
+                  .lineLimit(1)
+                  .minimumScaleFactor(0.8)
+                  .frame(minHeight: 44)
+              }
+              .accessibility(identifier: "cancel-sleep-timer")
+            }
+          }
+          .font(.caption)
 
           HStack(spacing: 24) {
             Button(action: {
@@ -137,15 +173,32 @@ struct PlayerView: View {
           )
           .environmentObject(self.localization)
         }
-        .actionSheet(isPresented: $isShowingSpeedOptions) {
-          ActionSheet(
-            title: Text(self.localization.text(.playbackSpeed)),
-            buttons: PlaybackSpeed.allCases.map { speed in
-              .default(Text((speed == self.player.playbackSpeed ? "✓ " : "") + speed.title)) {
-                self.player.setPlaybackSpeed(speed)
+        .actionSheet(item: $optionsSheet) { sheet in
+          switch sheet {
+          case .speed:
+            return ActionSheet(
+              title: Text(self.localization.text(.playbackSpeed)),
+              buttons: PlaybackSpeed.allCases.map { speed in
+                .default(Text((speed == self.player.playbackSpeed ? "✓ " : "") + speed.title)) {
+                  self.player.setPlaybackSpeed(speed)
+                }
+              } + [.cancel(Text(self.localization.text(.cancel)))]
+            )
+          case .sleepTimer:
+            var buttons: [ActionSheet.Button] = SleepTimerDuration.allCases.map { duration in
+              let title = String(format: self.localization.text(.sleepTimerMinutes), duration.rawValue)
+              return .default(Text((duration == self.player.sleepTimerDuration ? "✓ " : "") + title)) {
+                self.player.setSleepTimer(duration)
               }
-            } + [.cancel(Text(self.localization.text(.cancel)))]
-          )
+            }
+            if self.player.sleepTimerRemaining != nil {
+              buttons.append(.destructive(Text(self.localization.text(.cancelSleepTimer))) {
+                self.player.cancelSleepTimer()
+              })
+            }
+            buttons.append(.cancel(Text(self.localization.text(.cancel))))
+            return ActionSheet(title: Text(self.localization.text(.sleepTimer)), buttons: buttons)
+          }
         }
       }
     }

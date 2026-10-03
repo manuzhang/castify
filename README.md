@@ -44,6 +44,12 @@ reports the selected speed and a zero current rate while paused.
 Listening statistics count time spent listening, normalized for playback speed,
 including intervals across speed changes, pauses, and episode switches.
 
+## Sleep Timer
+
+The player offers 15/30/45/60-minute timers, a visible countdown, and cancellation.
+Timers continue across pauses, speed changes, seeking, and episode changes.
+See [sleep timer behavior and verification](docs/sleep-timer.md) for details.
+
 ## Tests
 
 The shared `Podcasts` scheme runs `PodcastsTests`, covering solid-color artwork

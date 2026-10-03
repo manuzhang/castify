@@ -73,6 +73,10 @@ enum AppText: String {
   case forward30Seconds
   case nextEpisode
   case playbackSpeed
+  case sleepTimer
+  case sleepTimerMinutes
+  case cancelSleepTimer
+  case sleepTimerOff
   case upNext
   case playAll
   case episodes
@@ -176,6 +180,10 @@ final class LocalizationService: ObservableObject {
       .forward30Seconds: "Forward 30 seconds",
       .nextEpisode: "Next episode",
       .playbackSpeed: "Playback speed",
+      .sleepTimer: "Sleep timer",
+      .sleepTimerMinutes: "%d minutes",
+      .cancelSleepTimer: "Cancel timer",
+      .sleepTimerOff: "Off",
       .upNext: "Up Next",
       .playAll: "Play All",
       .episodes: "episodes",
@@ -270,6 +278,10 @@ final class LocalizationService: ObservableObject {
       .forward30Seconds: "前进 30 秒",
       .nextEpisode: "下一集",
       .playbackSpeed: "播放速度",
+      .sleepTimer: "睡眠定时",
+      .sleepTimerMinutes: "%d 分钟",
+      .cancelSleepTimer: "取消定时",
+      .sleepTimerOff: "关闭",
       .upNext: "待播列表",
       .playAll: "全部播放",
       .episodes: "单集",

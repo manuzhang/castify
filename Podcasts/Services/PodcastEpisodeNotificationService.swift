@@ -55,6 +55,10 @@ final class PodcastEpisodeNotificationService {
     var seen = Set<String>()
     var cutoff = Date.distantPast
     var hasBaseline = false
+    // Optional fields decode older records without inventing known identifiers.
+    var submittedIdentifiers: Set<String>? = []
+    var unconfirmedIdentifiers: Set<String>? = []
+    var hasUntrackedRequests: Bool? = false
   }
 
   private struct Store: Codable {
@@ -71,6 +75,7 @@ final class PodcastEpisodeNotificationService {
   private var store: Store
   private var sequence = 0
   private var latestRefresh = [String: Int]()
+  private var inFlightIdentifiers = Set<String>()
 
   init(userDefaults: UserDefaults = .standard,
        center: EpisodeNotificationCenter = LocalEpisodeNotificationCenter(),
@@ -125,7 +130,7 @@ final class PodcastEpisodeNotificationService {
     guard enabled else { disable(feed); return }
     guard store.preferences[feed]?.enabled != true else { return }
     if let previous = store.preferences[feed] {
-      center.removePending(prefix: prefix(feed: feed, generation: previous.generation))
+      cancelPending(feed: feed, preference: previous)
     }
     // Each new opt-in needs a fresh network snapshot, even if the screen already
     // has cached episodes. Neither toggling nor migration requests permission.
@@ -144,7 +149,7 @@ final class PodcastEpisodeNotificationService {
     store.globalEnabled = enabled
     for feed in Array(store.preferences.keys) {
       guard let previous = store.preferences[feed] else { continue }
-      center.removePending(prefix: prefix(feed: feed, generation: previous.generation))
+      cancelPending(feed: feed, preference: previous)
       store.preferences[feed] = Preference(enabled: previous.enabled, cutoff: now())
     }
     latestRefresh.removeAll()
@@ -155,6 +160,7 @@ final class PodcastEpisodeNotificationService {
     globalPreferenceDidChange()
     let feed = Self.feedKey(feedURL)
     guard isSubscribed(feed), let preference = store.preferences[feed], preference.enabled else { return nil }
+    pruneDeliveredIdentifiers(feed: feed, preference: preference)
     sequence += 1
     latestRefresh[feed] = sequence
     return Refresh(feed: feed, generation: preference.generation, sequence: sequence)
@@ -201,14 +207,33 @@ final class PodcastEpisodeNotificationService {
         content.userInfo = ["feedURL": refresh.feed]
         let request = UNNotificationRequest(identifier: identifier, content: content,
           trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false))
+        guard var preference = self.store.preferences[refresh.feed] else { return }
+        if preference.submittedIdentifiers == nil { preference.hasUntrackedRequests = true }
+        var identifiers = preference.submittedIdentifiers ?? []
+        identifiers.insert(identifier)
+        preference.submittedIdentifiers = identifiers
+        var unconfirmed = preference.unconfirmedIdentifiers ?? []
+        unconfirmed.insert(identifier)
+        preference.unconfirmedIdentifiers = unconfirmed
+        self.store.preferences[refresh.feed] = preference
+        // Persist before submitting so disable/unsubscribe can remove identifiers
+        // directly, including requests restored after an app restart.
+        guard self.save() else { return }
+        self.inFlightIdentifiers.insert(identifier)
         self.center.add(request) { [weak self] error in
           Self.onMain {
             guard let self = self else { return }
+            self.inFlightIdentifiers.remove(identifier)
             self.globalPreferenceDidChange()
             // add() may finish after a disable/unsubscribe. Cancel its own old
             // identifier, rather than touching any replacement-generation alert.
-            if error != nil || !self.isEligible(refresh) || !self.store.globalEnabled {
-              self.center.removePending(identifier: identifier)
+            let obsolete = error != nil || !self.isEligible(refresh) || !self.store.globalEnabled
+            if obsolete { self.center.removePending(identifier: identifier) }
+            if var current = self.store.preferences[refresh.feed], current.generation == refresh.generation {
+              current.unconfirmedIdentifiers?.remove(identifier)
+              if obsolete { current.submittedIdentifiers?.remove(identifier) }
+              self.store.preferences[refresh.feed] = current
+              self.save()
             }
           }
         }
@@ -250,9 +275,39 @@ final class PodcastEpisodeNotificationService {
     subscriptions().contains { Self.feedKey($0.feedUrl) == feed }
   }
 
+  private func cancelPending(feed: String, preference: Preference) {
+    for identifier in preference.submittedIdentifiers ?? [] {
+      center.removePending(identifier: identifier)
+    }
+    // Pre-upgrade records may contain requests whose identifiers were not saved.
+    // The generation-scoped fallback supplements immediate known-ID removal.
+    if preference.submittedIdentifiers == nil || preference.hasUntrackedRequests == true {
+      center.removePending(prefix: prefix(feed: feed, generation: preference.generation))
+    }
+  }
+
+  private func pruneDeliveredIdentifiers(feed: String, preference: Preference) {
+    let completed = (preference.submittedIdentifiers ?? [])
+      .subtracting(inFlightIdentifiers).subtracting(preference.unconfirmedIdentifiers ?? [])
+    guard !completed.isEmpty else { return }
+    center.pendingRequests { requests in
+      Self.onMain {
+        guard var current = self.store.preferences[feed], current.generation == preference.generation else { return }
+        let pending = Set(requests.map { $0.identifier })
+        // Only prune completed submissions that predate this lookup. Preserve
+        // in-flight or newer requests omitted from an earlier OS snapshot.
+        let delivered = completed.subtracting(pending)
+        guard !delivered.isEmpty else { return }
+        current.submittedIdentifiers?.subtract(delivered)
+        self.store.preferences[feed] = current
+        self.save()
+      }
+    }
+  }
+
   private func disable(_ feed: String) {
     guard let previous = store.preferences[feed] else { return }
-    center.removePending(prefix: prefix(feed: feed, generation: previous.generation))
+    cancelPending(feed: feed, preference: previous)
     store.preferences.removeValue(forKey: feed)
     latestRefresh.removeValue(forKey: feed)
     save()

@@ -51,7 +51,9 @@ unknown-version record cancels app-owned pending episode requests and persists
 the recovered preference store. A delayed cleanup rechecks current generations so it
 preserves new alerts enabled during recovery and leaves unrelated requests alone.
 
-Disabling a podcast removes its stored record, cancels its pending requests and invalidates refreshes,
+Submitted request identifiers are persisted before scheduling. Disabling a podcast
+removes its stored record, directly cancels known identifiers without awaiting a
+pending-request lookup, and invalidates refreshes,
 authorization lookups and additions already in flight. Unsubscribe does the same;
 resubscription defaults off. Startup also prunes legacy disabled records and records
 for absent subscriptions, so inactive feeds do not accumulate across launches. Re-enabling starts a fresh baseline, suppressing
@@ -65,11 +67,15 @@ All notification state is handled on the main thread. The newest-started refresh
 for a feed wins; out-of-order responses, including an older response after a newer
 failure, cannot establish a baseline or schedule an alert. Failed refreshes do not
 advance a cutoff. Non-RSS XML payloads are rejected before changing alert state;
-valid empty RSS channels remain successful snapshots. A late permission callback
+valid empty RSS channels remain successful snapshots. RSS 1.0/RDF channels and
+sibling items are also recognized by namespace, preserving prior feed support. A late permission callback
 rechecks the refresh generation, subscription and global preference. Once a
 discovery is committed, a later refresh does not discard its pending delivery. A late add completion cancels its
 own obsolete identifier. Cancellation queries include the old generation so they
-cannot cancel alerts from a replacement opt-in.
+cannot cancel alerts from a replacement opt-in. Prefix lookup is a fallback only
+for pre-upgrade records with untracked identifiers. Completed identifiers no
+longer pending are pruned on later refreshes; in-flight/newer submissions are
+protected from stale lookup snapshots.
 
 ## Validation
 
@@ -170,3 +176,25 @@ identity/cache tests, 3 stub-network refresh tests, 1 bilingual UI render test, 
 `/tmp/castify-podcast-notifications-feed-review-build.log`; summary:
 `/tmp/castify-podcast-notifications-feed-review-test-summary.json`. Device/UI
 limitations documented above are unchanged.
+
+The RSS 1.0/cancellation follow-up is addressed: structural checks also recognize
+RSS 1.0 channels and sibling items by RDF/RSS namespace, including alternate
+prefixes. RSS 2.0 iTunes metadata parsing is preserved. Submitted identifiers and
+registration confirmation are persisted before scheduling, so per-podcast disable,
+unsubscribe and global changes request immediate known-ID removal, even after
+restart. Pre-upgrade unknown IDs retain the old generation-scoped lookup fallback.
+Completed IDs are pruned against later pending-request snapshots without dropping
+in-flight, unconfirmed-after-restart, or newly submitted IDs.
+
+Nine added regressions cover RDF parsing/network delivery, iTunes metadata, direct
+cancellation in all three paths, persistence/restart, delayed pruning, in-flight
+and unconfirmed requests, and legacy fallback. Final validation passed generation
+without drift, the generic simulator build, and **71 tests, 0 failures, 0 skips**
+(43 notification-state, 8 parser/identity/cache, 4 stub-network, 1 bilingual UI,
+and 15 existing playback/speed/artwork tests). Bundle/log:
+`build/test-results/run.HtqFyY/Tests.xcresult` and `xcodebuild.log`; build log:
+`/tmp/castify-podcast-notifications-direct-cancel-build-final.log`; summary:
+`/tmp/castify-podcast-notifications-direct-cancel-test-summary-final.json`.
+An earlier complete 70-test suite also passed before the confirmation-state
+restart regression was added. Physical-device/OS presentation and other UI limits
+remain as documented above.

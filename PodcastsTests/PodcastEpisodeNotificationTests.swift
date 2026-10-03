@@ -15,6 +15,8 @@ private final class RecordingAlertCenter: EpisodeNotificationCenter {
   var deferAuthorization = false
   var deferAdd = false
   var deferPendingLookup = false
+  var deferPrefixRemoval = false
+  var prefixRemovals: [() -> Void] = []
   var pendingLookups: [([UNNotificationRequest]) -> Void] = []
   var addError: Error?
   var statusCalls = 0
@@ -44,7 +46,8 @@ private final class RecordingAlertCenter: EpisodeNotificationCenter {
 
   func removePending(prefix: String) {
     removals.append(prefix)
-    pending = pending.filter { !$0.key.hasPrefix(prefix) }
+    let finish = { self.pending = self.pending.filter { !$0.key.hasPrefix(prefix) } }
+    if deferPrefixRemoval { prefixRemovals.append(finish) } else { finish() }
   }
 
   func removePending(identifier: String) {
@@ -315,6 +318,9 @@ final class PodcastEpisodeNotificationTests: XCTestCase {
     var preferences = try storedPreferences()
     var disabled = try XCTUnwrap(preferences[podcast.feedUrl] as? [String: Any])
     disabled["enabled"] = false
+    disabled.removeValue(forKey: "submittedIdentifiers")
+    disabled.removeValue(forKey: "unconfirmedIdentifiers")
+    disabled.removeValue(forKey: "hasUntrackedRequests")
     preferences[podcast.feedUrl] = disabled
     store["preferences"] = preferences
     defaults.set(try JSONSerialization.data(withJSONObject: store), forKey: UserDefaults.podcastNotificationPreferencesKey)
@@ -525,6 +531,116 @@ final class PodcastEpisodeNotificationTests: XCTestCase {
     XCTAssertTrue(center.requests.isEmpty)
   }
 
+  func testKnownRequestCancellationDoesNotWaitForPendingLookup() {
+    center.deferPendingLookup = true
+    center.deferPrefixRemoval = true
+    for action in 0...2 {
+      baseline()
+      newRefresh()
+      XCTAssertEqual(center.pending.count, 1)
+      if action == 0 {
+        service.setEnabled(false, for: podcast)
+      } else if action == 1 {
+        fixture.podcasts = []
+        service.subscriptionRemoved(podcast)
+        fixture.podcasts = [podcast]
+      } else {
+        defaults.set(false, forKey: UserDefaults.notificationsEnabledKey)
+        service.globalPreferenceDidChange()
+      }
+      XCTAssertTrue(center.pending.isEmpty)
+      XCTAssertTrue(center.pendingLookups.isEmpty)
+      XCTAssertTrue(center.prefixRemovals.isEmpty)
+    }
+  }
+
+  func testPersistedIdentifiersAllowDirectCancellationAfterRestart() throws {
+    baseline()
+    newRefresh()
+    let identifier = try XCTUnwrap(center.requests.last?.identifier)
+    XCTAssertEqual(try storedIdentifiers(), [identifier])
+    center.deferPendingLookup = true
+    center.deferPrefixRemoval = true
+    service = makeService()
+    service.setEnabled(false, for: podcast)
+    XCTAssertTrue(center.pending.isEmpty)
+    XCTAssertTrue(center.pendingLookups.isEmpty)
+    XCTAssertTrue(center.prefixRemovals.isEmpty)
+  }
+
+  func testIdentifierPruningPreservesSubmissionsNewerThanSnapshot() throws {
+    baseline()
+    newRefresh()
+    center.pending.removeAll() // OS already delivered this completed request.
+    center.deferPendingLookup = true
+    let refresh = service.beginRefresh(feedURL: podcast.feedUrl)
+    let finishLookup = center.pendingLookups.removeFirst()
+    fixture.time = Date(timeIntervalSince1970: 140)
+    service.completeRefresh(refresh, episodes: [episode("later", at: 130)])
+    let replacement = try XCTUnwrap(center.requests.last)
+    finishLookup([]) // Snapshot predates replacement submission.
+    XCTAssertEqual(try storedIdentifiers(), [replacement.identifier])
+    XCTAssertEqual(Set(center.pending.keys), [replacement.identifier])
+    service.setEnabled(false, for: podcast)
+    XCTAssertTrue(center.pending.isEmpty)
+  }
+
+  func testInFlightIdentifiersAreNotPrunedBeforeAddCompletion() throws {
+    baseline()
+    center.deferAdd = true
+    center.deferPendingLookup = true
+    newRefresh()
+    let identifier = try XCTUnwrap(center.requests.last?.identifier)
+    _ = service.beginRefresh(feedURL: podcast.feedUrl)
+    XCTAssertTrue(center.pendingLookups.isEmpty)
+    XCTAssertEqual(try storedIdentifiers(), [identifier])
+    service.setEnabled(false, for: podcast)
+    XCTAssertTrue(center.removals.contains(identifier))
+    center.additions.removeFirst()()
+    XCTAssertTrue(center.pending.isEmpty)
+  }
+
+  func testUnconfirmedIdentifiersSurviveRestartAndRemainDirectlyCancellable() throws {
+    baseline()
+    center.deferAdd = true
+    newRefresh()
+    let identifier = try XCTUnwrap(center.requests.last?.identifier)
+    service = makeService()
+    center.deferPendingLookup = true
+    _ = service.beginRefresh(feedURL: podcast.feedUrl)
+    XCTAssertTrue(center.pendingLookups.isEmpty)
+    XCTAssertEqual(try storedIdentifiers(), [identifier])
+    center.additions.removeFirst()()
+    XCTAssertEqual(Set(center.pending.keys), [identifier])
+    service.setEnabled(false, for: podcast)
+    XCTAssertTrue(center.pending.isEmpty)
+    XCTAssertTrue(center.pendingLookups.isEmpty)
+  }
+
+  func testLegacyUnknownIdentifiersUseFallbackAlongsideDirectNewRemoval() throws {
+    baseline()
+    newRefresh()
+    let old = try XCTUnwrap(center.requests.last)
+    var store = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(defaults.data(forKey: UserDefaults.podcastNotificationPreferencesKey))) as? [String: Any])
+    var preferences = try storedPreferences()
+    var legacy = try XCTUnwrap(preferences[podcast.feedUrl] as? [String: Any])
+    legacy.removeValue(forKey: "submittedIdentifiers")
+    legacy.removeValue(forKey: "unconfirmedIdentifiers")
+    legacy.removeValue(forKey: "hasUntrackedRequests")
+    preferences[podcast.feedUrl] = legacy
+    store["preferences"] = preferences
+    defaults.set(try JSONSerialization.data(withJSONObject: store), forKey: UserDefaults.podcastNotificationPreferencesKey)
+    service = makeService()
+    center.deferPrefixRemoval = true
+    fixture.time = Date(timeIntervalSince1970: 140)
+    refresh([episode("later", at: 130)])
+    service.setEnabled(false, for: podcast)
+    XCTAssertEqual(Set(center.pending.keys), [old.identifier])
+    XCTAssertEqual(center.prefixRemovals.count, 1)
+    center.prefixRemovals.removeFirst()()
+    XCTAssertTrue(center.pending.isEmpty)
+  }
+
   func testInvalidStoreRecoveryCancelsOnlyAppOwnedPendingAlerts() throws {
     let unrelated = UNNotificationRequest(identifier: "unrelated.reminder", content: UNMutableNotificationContent(), trigger: nil)
     center.pending[unrelated.identifier] = unrelated
@@ -594,6 +710,11 @@ final class PodcastEpisodeNotificationTests: XCTestCase {
             streamUrl: "https://example.test/\(guid).mp3", guid: guid, publicationDateIsKnown: true)
   }
 
+  private func storedIdentifiers() throws -> Set<String> {
+    let preference = try XCTUnwrap(try storedPreferences()[podcast.feedUrl] as? [String: Any])
+    return Set(try XCTUnwrap(preference["submittedIdentifiers"] as? [String]))
+  }
+
   private func storedPreferences() throws -> [String: Any] {
     let data = try XCTUnwrap(defaults.data(forKey: UserDefaults.podcastNotificationPreferencesKey))
     let store = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
@@ -649,6 +770,48 @@ final class PodcastNotificationIdentityTests: XCTestCase {
       XCTAssertThrowsError(try parser.parse(data: Data(xml.utf8)), xml)
     }
     XCTAssertTrue(try parser.parse(data: Data("<rss><channel/></rss>".utf8)).episodes.isEmpty)
+  }
+
+  func testRSS1RDFParsesSiblingItemsAndAlternateNamespacePrefixes() throws {
+    for (rdf, rss) in [("rdf", ""), ("graph", "rss:")] {
+      let rssNamespace = rss.isEmpty ? "xmlns='http://purl.org/rss/1.0/'" : "xmlns:rss='http://purl.org/rss/1.0/'"
+      let xml = """
+      <\(rdf):RDF xmlns:\(rdf)='http://www.w3.org/1999/02/22-rdf-syntax-ns#' \(rssNamespace)>
+      <\(rss)channel><\(rss)description>RDF feed</\(rss)description></\(rss)channel>
+      <\(rss)item><\(rss)title>RDF episode</\(rss)title><\(rss)guid>rdf-guid</\(rss)guid>
+      <\(rss)pubDate>Wed, 02 Oct 2002 08:00 +0000</\(rss)pubDate>
+      <\(rss)enclosure url='https://example.test/rdf.mp3'/></\(rss)item></\(rdf):RDF>
+      """
+      let feed = try PodcastFeedParser().parse(data: Data(xml.utf8))
+      XCTAssertEqual(feed.description, "RDF feed")
+      let episode = try XCTUnwrap(feed.episodes.first)
+      XCTAssertEqual(feed.episodes.count, 1)
+      XCTAssertEqual(episode.title, "RDF episode")
+      XCTAssertEqual(episode.guid, "rdf-guid")
+      XCTAssertEqual(episode.streamUrl, "https://example.test/rdf.mp3")
+      XCTAssertNotNil(episode.notificationPublicationDate)
+    }
+    for xml in ["<rdf:RDF xmlns:rdf='urn:unrelated'><channel/><item><title>Invalid</title></item></rdf:RDF>",
+                "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'><channel/></rdf:RDF>"] {
+      XCTAssertThrowsError(try PodcastFeedParser().parse(data: Data(xml.utf8)))
+    }
+  }
+
+  func testNamespaceProcessingPreservesRSS2ITunesMetadata() throws {
+    let xml = """
+    <rss xmlns:itunes='http://www.itunes.com/dtds/podcast-1.0.dtd'><channel>
+    <itunes:image href='https://example.test/feed.jpg'/><item><title>Episode</title>
+    <itunes:author>Author</itunes:author><itunes:subtitle>Subtitle</itunes:subtitle>
+    <itunes:duration>01:30</itunes:duration><itunes:image href='https://example.test/episode.jpg'/>
+    </item></channel></rss>
+    """
+    let feed = try PodcastFeedParser().parse(data: Data(xml.utf8))
+    let episode = try XCTUnwrap(feed.episodes.first)
+    XCTAssertEqual(feed.imageUrl, "https://example.test/feed.jpg")
+    XCTAssertEqual(episode.imageUrl, "https://example.test/episode.jpg")
+    XCTAssertEqual(episode.author, "Author")
+    XCTAssertEqual(episode.description, "Subtitle")
+    XCTAssertEqual(episode.duration, 90)
   }
 
   func testOlderEpisodeCacheDecodesWithoutGUID() throws {
@@ -753,7 +916,11 @@ final class PodcastNotificationRefreshTests: XCTestCase {
     try verifyRefreshes(firstFails: true, invalidPayload: true)
   }
 
-  private func verifyRefreshes(firstFails: Bool, invalidPayload: Bool = false) throws {
+  func testRSS1NetworkRefreshPreservesEpisodeLoadingAndAlertDiscovery() throws {
+    try verifyRefreshes(firstFails: false, rss1: true)
+  }
+
+  private func verifyRefreshes(firstFails: Bool, invalidPayload: Bool = false, rss1: Bool = false) throws {
     let suite = "Castify.NotificationRefreshTests." + UUID().uuidString
     let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
     defer { defaults.removePersistentDomain(forName: suite); StubAlertFeedProtocol.responses = [] }
@@ -795,7 +962,10 @@ final class PodcastNotificationRefreshTests: XCTestCase {
         fixture.time = Date(timeIntervalSince1970: 160)
       }
       let date = ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: timestamp))
-      StubAlertFeedProtocol.responses = [.success(Data("<rss><channel><item><title>Stub \(guid)</title><guid>\(guid)</guid><pubDate>\(date)</pubDate><enclosure url='https://feed-alert-tests.invalid/\(guid).mp3'/></item></channel></rss>".utf8))]
+      let item = "<item><title>Stub \(guid)</title><guid>\(guid)</guid><pubDate>\(date)</pubDate><enclosure url='https://feed-alert-tests.invalid/\(guid).mp3'/></item>"
+      let xml = rss1 ? "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' xmlns='http://purl.org/rss/1.0/'><channel/>\(item)</rdf:RDF>" :
+        "<rss><channel>\(item)</channel></rss>"
+      StubAlertFeedProtocol.responses = [.success(Data(xml.utf8))]
       let loaded = expectation(description: "Feed success")
       networking.fetchPodcastFeed(url: url) { result in
         if case .success(let feed) = result {

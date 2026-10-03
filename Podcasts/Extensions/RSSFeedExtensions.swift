@@ -58,6 +58,7 @@ final class PodcastFeedParser: NSObject {
   private var elementStack = [String]()
   private var textStack = [String]()
   private var channelCount = 0
+  private var isRDFRoot = false
 
   func parse(data: Data) throws -> ParsedPodcastFeed {
     feedDescription = ""
@@ -67,9 +68,11 @@ final class PodcastFeedParser: NSObject {
     elementStack = []
     textStack = []
     channelCount = 0
+    isRDFRoot = false
 
     let parser = XMLParser(data: data)
     parser.delegate = self
+    parser.shouldProcessNamespaces = true
 
     // Well-formed error/HTML XML is not a successful RSS snapshot. An empty
     // RSS channel is valid, so do not require episodes to establish a baseline.
@@ -90,6 +93,14 @@ final class PodcastFeedParser: NSObject {
 
   private func normalized(_ elementName: String) -> String {
     elementName.lowercased()
+  }
+
+  private func element(_ name: String, qualifiedName: String?, namespaceURI: String?) -> String {
+    if namespaceURI == "http://www.w3.org/1999/02/22-rdf-syntax-ns#", normalized(name) == "rdf" {
+      return "rdf:rdf"
+    }
+    if namespaceURI == "http://purl.org/rss/1.0/" { return normalized(name) }
+    return normalized(qualifiedName ?? name)
   }
 
   private func trimmed(_ text: String) -> String {
@@ -150,13 +161,19 @@ extension PodcastFeedParser: XMLParserDelegate {
               namespaceURI: String?,
               qualifiedName qName: String?,
               attributes attributeDict: [String: String] = [:]) {
-    let element = normalized(elementName)
+    let element = element(elementName, qualifiedName: qName, namespaceURI: namespaceURI)
+    if elementStack.isEmpty {
+      isRDFRoot = namespaceURI == "http://www.w3.org/1999/02/22-rdf-syntax-ns#" && normalized(elementName) == "rdf"
+    }
     elementStack.append(element)
     textStack.append("")
 
-    if elementStack == ["rss", "channel"] { channelCount += 1 }
+    let isRSS1Element = isRDFRoot && namespaceURI == "http://purl.org/rss/1.0/"
+    if elementStack == ["rss", "channel"] || (isRSS1Element && elementStack == ["rdf:rdf", "channel"]) {
+      channelCount += 1
+    }
 
-    if elementStack == ["rss", "channel", "item"] {
+    if elementStack == ["rss", "channel", "item"] || (isRSS1Element && elementStack == ["rdf:rdf", "item"]) {
       currentEpisode = EpisodeDraft()
       return
     }
@@ -198,7 +215,7 @@ extension PodcastFeedParser: XMLParserDelegate {
               didEndElement elementName: String,
               namespaceURI: String?,
               qualifiedName qName: String?) {
-    let element = normalized(elementName)
+    let element = element(elementName, qualifiedName: qName, namespaceURI: namespaceURI)
     let rawText = textStack.popLast() ?? ""
     let text = trimmed(rawText)
 

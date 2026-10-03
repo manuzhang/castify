@@ -42,6 +42,7 @@ struct LocalEpisodeNotificationCenter: EpisodeNotificationCenter {
 /// Main-thread preferences and at-most-once local alerts from successful RSS refreshes.
 final class PodcastEpisodeNotificationService {
   static let shared = PodcastEpisodeNotificationService()
+  static let retainedIdentityLimit = 2048
 
   struct Refresh {
     fileprivate let feed: String
@@ -52,7 +53,8 @@ final class PodcastEpisodeNotificationService {
   private struct Preference: Codable {
     var enabled = false
     var generation = UUID()
-    var seen = Set<String>()
+    // JSON arrays remain compatible with the previously encoded Set<String>.
+    var seen = [String]()
     var cutoff = Date.distantPast
     var hasBaseline = false
     // Optional fields decode older records without inventing known identifiers.
@@ -98,6 +100,14 @@ final class PodcastEpisodeNotificationService {
     for feed in Array(store.preferences.keys) where !isSubscribed(feed) || store.preferences[feed]?.enabled != true {
       disable(feed)
     }
+    var compacted = false
+    for feed in Array(store.preferences.keys) {
+      guard var preference = store.preferences[feed], preference.seen.count > Self.retainedIdentityLimit else { continue }
+      preference.seen = Array(preference.seen.prefix(Self.retainedIdentityLimit))
+      store.preferences[feed] = preference
+      compacted = true
+    }
+    if compacted { save() }
     globalPreferenceDidChange()
     if savedData != nil && saved?.version != 1 { cancelDiscardedStoreRequests() }
   }
@@ -173,14 +183,22 @@ final class PodcastEpisodeNotificationService {
     guard isCurrent(refresh), var preference = store.preferences[refresh.feed] else { return }
     let timestamp = now()
     var candidates = [Episode]()
-    for episode in episodes {
+    var seen = Set(preference.seen)
+    var snapshot = Set<String>()
+    var recent = [String]()
+    // Prefer the newest publication times when a large snapshot exceeds the
+    // retained window. Cutoff checks still suppress ordinary historical replay.
+    for episode in episodes.sorted(by: { ($0.notificationPublicationDate ?? .distantPast) > ($1.notificationPublicationDate ?? .distantPast) }) {
       guard let identity = Self.identity(episode) else { continue }
-      let inserted = preference.seen.insert(identity).inserted
+      if snapshot.insert(identity).inserted { recent.append(identity) }
+      let inserted = seen.insert(identity).inserted
       if inserted && preference.hasBaseline, let publishedAt = episode.notificationPublicationDate,
          publishedAt > preference.cutoff && publishedAt <= timestamp {
         candidates.append(episode)
       }
     }
+    recent.append(contentsOf: preference.seen.filter { !snapshot.contains($0) })
+    preference.seen = Array(recent.prefix(Self.retainedIdentityLimit))
     preference.hasBaseline = true
     preference.cutoff = max(preference.cutoff, timestamp)
     store.preferences[refresh.feed] = preference

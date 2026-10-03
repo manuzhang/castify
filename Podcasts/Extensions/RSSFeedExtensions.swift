@@ -100,6 +100,7 @@ final class PodcastFeedParser: NSObject {
       return "rdf:rdf"
     }
     if namespaceURI == "http://purl.org/rss/1.0/" { return normalized(name) }
+    if namespaceURI == "http://purl.org/dc/elements/1.1/" { return "dc:" + normalized(name) }
     return normalized(qualifiedName ?? name)
   }
 
@@ -118,12 +119,16 @@ final class PodcastFeedParser: NSObject {
       "d MMM yyyy HH:mm Z",
       "dd MMM yyyy HH:mm Z",
       "yyyy-MM-dd'T'HH:mm:ssZ",
-      "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+      "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+      "yyyy-MM-dd'T'HH:mmZ",
+      "yyyy-MM-dd"
     ]
 
     for format in formats {
+      if format == "yyyy-MM-dd", value.count != 10 { continue }
       let formatter = DateFormatter()
       formatter.locale = Locale(identifier: "en_US_POSIX")
+      formatter.timeZone = TimeZone(secondsFromGMT: 0)
       formatter.dateFormat = format
       if let date = formatter.date(from: value) {
         return date
@@ -229,14 +234,15 @@ extension PodcastFeedParser: XMLParserDelegate {
         }
       case "itunes:subtitle":
         episode.subtitle = text
-      case "itunes:author", "author":
-        if !text.isEmpty {
+      case "itunes:author", "author", "dc:creator":
+        if !text.isEmpty && (element != "dc:creator" || namespaceURI == "http://purl.org/dc/elements/1.1/") {
           episode.author = text
         }
       case "guid":
         episode.guid = text
-      case "pubdate":
-        if let parsedDate = date(from: text) {
+      case "pubdate", "dc:date":
+        if (element == "pubdate" || namespaceURI == "http://purl.org/dc/elements/1.1/"),
+           let parsedDate = date(from: text) {
           episode.pubDate = parsedDate
           episode.publicationDateIsKnown = true
         }

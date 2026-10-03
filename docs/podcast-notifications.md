@@ -17,7 +17,9 @@ notification delegate and rechecks the current global/subscription preference.
 - An opt-in establishes its baseline from the next successful network refresh;
   cached screen contents are not used. That first snapshot is never announced.
 - Subsequent snapshots identify episodes by RSS GUID, then enclosure URL, then
-  reliably parsed publication date/title/author. RFC 822 dates may omit seconds. Identities are SHA-256 hashes
+  reliably parsed publication date/title/author. RFC 822 dates may omit seconds;
+  RSS 1.0 Dublin Core dates are resolved by namespace and parsed as ISO timestamps
+  or UTC calendar dates. Identities are SHA-256 hashes
   scoped to a normalized subscription feed URL. Added optional episode fields
   remain compatible with old cached JSON; playback equality is unchanged.
 - An episode must be unseen and have a valid publication date later than the
@@ -42,6 +44,13 @@ notification delegate and rechecks the current global/subscription preference.
 Membership uses the library's existing matching rules: a shared nonzero track ID,
 then a normalized feed URL. A Browse result with an updated URL controls the saved
 subscription's preference; library refreshes continue using that saved feed URL.
+
+Seen hashes retain at most 2,048 identities per active feed, prioritizing the current
+snapshot's newest publication dates and then prior recent identities. Oversized
+legacy arrays are compacted once at startup; the JSON representation is compatible
+with old encoded sets. Cutoff checks prevent historical replay with unchanged
+dates even after eviction. Deduplication of GUIDs whose dates are edited forward
+is limited to this retained window; it is not an unlimited identity archive.
 
 Active per-feed preferences, seen hashes, baseline cutoff and generation are stored in
 one versioned `UserDefaults` record. Existing global values are retained. A missing,
@@ -198,3 +207,25 @@ and 15 existing playback/speed/artwork tests). Bundle/log:
 An earlier complete 70-test suite also passed before the confirmation-state
 restart regression was added. Physical-device/OS presentation and other UI limits
 remain as documented above.
+
+The Dublin Core/history review is addressed: `dc:date` is resolved by namespace
+(including alternate prefixes), supports ISO second/minute timestamps and UTC
+calendar dates, and supplies reliable metadata identity when GUID/enclosure are
+absent. Invalid namespaces or insufficient date granularity remain unknown.
+Seen history is now an ordered, compatible JSON array capped at 2,048 hashes per
+feed. Current newest publication dates are prioritized, and oversized legacy
+arrays are compacted once on load. Cutoffs suppress unchanged historical dates;
+GUID deduplication after a publisher edits dates forward is limited to the
+retained window, as documented above.
+
+Four new regressions cover DC date/creator variants and invalid metadata, a
+standard RSS 1.0 title/link/date network flow, rotating GUID histories and recent
+GUID edits after restart, and one-time legacy compaction. Final validation passed
+XcodeGen generation without drift, the generic simulator build, and **75 tests,
+0 failures, 0 skips** (45 notification-state, 9 parser/identity/cache, 5 stub-network,
+1 bilingual UI and 15 existing playback/speed/artwork tests). Bundle/log:
+`build/test-results/run.xVWvbc/Tests.xcresult` and `xcodebuild.log`; build log:
+`/tmp/castify-podcast-notifications-bounded-history-build.log`; summary:
+`/tmp/castify-podcast-notifications-bounded-history-test-summary.json`. The Mac
+connection dropped during the run; after recovery, the existing completed bundle
+was verified without launching a duplicate runner.

@@ -531,6 +531,46 @@ final class PodcastEpisodeNotificationTests: XCTestCase {
     XCTAssertTrue(center.requests.isEmpty)
   }
 
+  func testSeenHistoryIsBoundedAndRecentGUIDsRemainDeduplicatedAfterRestart() throws {
+    baseline()
+    let limit = PodcastEpisodeNotificationService.retainedIdentityLimit
+    for batch in 0...2 {
+      fixture.time.addTimeInterval(20)
+      refresh((0..<(limit * 2)).map { episode("history-\(batch)-\($0)", at: 50) })
+      XCTAssertLessThanOrEqual(try storedSeenHistory().count, limit)
+      XCTAssertTrue(center.requests.isEmpty)
+    }
+    fixture.time.addTimeInterval(20)
+    let recent = episode("recent", at: fixture.time.timeIntervalSince1970 - 5)
+    refresh([recent])
+    XCTAssertEqual(center.requests.count, 1)
+    XCTAssertTrue(try storedSeenHistory().contains(XCTUnwrap(PodcastEpisodeNotificationService.identity(recent))))
+    service = makeService()
+    fixture.time.addTimeInterval(20)
+    refresh([episode("recent", at: fixture.time.timeIntervalSince1970 - 5)]) // Same GUID with edited date.
+    XCTAssertEqual(center.requests.count, 1)
+    XCTAssertLessThanOrEqual(try storedSeenHistory().count, limit)
+    XCTAssertLessThan(try XCTUnwrap(defaults.data(forKey: UserDefaults.podcastNotificationPreferencesKey)).count, 200_000)
+  }
+
+  func testOversizedLegacySeenArraysCompactOnceDuringStartup() throws {
+    baseline()
+    let limit = PodcastEpisodeNotificationService.retainedIdentityLimit
+    var store = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(defaults.data(forKey: UserDefaults.podcastNotificationPreferencesKey))) as? [String: Any])
+    var preferences = try storedPreferences()
+    var legacy = try XCTUnwrap(preferences[podcast.feedUrl] as? [String: Any])
+    legacy["seen"] = (0..<(limit * 2)).compactMap { PodcastEpisodeNotificationService.identity(episode("legacy-\($0)", at: 50)) }
+    preferences[podcast.feedUrl] = legacy
+    store["preferences"] = preferences
+    defaults.set(try JSONSerialization.data(withJSONObject: store), forKey: UserDefaults.podcastNotificationPreferencesKey)
+    service = makeService()
+    XCTAssertTrue(service.isEnabled(for: podcast))
+    XCTAssertEqual(try storedSeenHistory().count, limit)
+    let compacted = defaults.data(forKey: UserDefaults.podcastNotificationPreferencesKey)
+    service = makeService()
+    XCTAssertEqual(defaults.data(forKey: UserDefaults.podcastNotificationPreferencesKey), compacted)
+  }
+
   func testKnownRequestCancellationDoesNotWaitForPendingLookup() {
     center.deferPendingLookup = true
     center.deferPrefixRemoval = true
@@ -710,6 +750,11 @@ final class PodcastEpisodeNotificationTests: XCTestCase {
             streamUrl: "https://example.test/\(guid).mp3", guid: guid, publicationDateIsKnown: true)
   }
 
+  private func storedSeenHistory() throws -> [String] {
+    let preference = try XCTUnwrap(try storedPreferences()[podcast.feedUrl] as? [String: Any])
+    return try XCTUnwrap(preference["seen"] as? [String])
+  }
+
   private func storedIdentifiers() throws -> Set<String> {
     let preference = try XCTUnwrap(try storedPreferences()[podcast.feedUrl] as? [String: Any])
     return Set(try XCTUnwrap(preference["submittedIdentifiers"] as? [String]))
@@ -794,6 +839,35 @@ final class PodcastNotificationIdentityTests: XCTestCase {
     for xml in ["<rdf:RDF xmlns:rdf='urn:unrelated'><channel/><item><title>Invalid</title></item></rdf:RDF>",
                 "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'><channel/></rdf:RDF>"] {
       XCTAssertThrowsError(try PodcastFeedParser().parse(data: Data(xml.utf8)))
+    }
+  }
+
+  func testRSS1DublinCoreDatesCreateReliableMetadataIdentities() throws {
+    for prefix in ["dc", "metadata"] {
+      for (value, expectedValue) in [("2002-10-02T08:00:00Z", "2002-10-02T08:00:00Z"),
+                                     ("2002-10-02T10:00+02:00", "2002-10-02T08:00:00Z"),
+                                     ("2002-10-02", "2002-10-02T00:00:00Z")] {
+        let xml = """
+        <rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' xmlns='http://purl.org/rss/1.0/' xmlns:\(prefix)='http://purl.org/dc/elements/1.1/'>
+        <channel/><item><title>DC episode</title><link>https://example.test/item</link>
+        <\(prefix):date>\(value)</\(prefix):date><\(prefix):creator>Author</\(prefix):creator></item></rdf:RDF>
+        """
+        let item = try XCTUnwrap(PodcastFeedParser().parse(data: Data(xml.utf8)).episodes.first)
+        XCTAssertNil(item.guid)
+        XCTAssertTrue(item.streamUrl.isEmpty)
+        XCTAssertEqual(item.author, "Author")
+        XCTAssertEqual(item.notificationPublicationDate, ISO8601DateFormatter().date(from: expectedValue))
+        XCTAssertNotNil(PodcastEpisodeNotificationService.identity(item))
+      }
+    }
+    for (uri, value) in [("urn:unrelated", "2002-10-02T08:00:00Z"),
+                         ("http://purl.org/dc/elements/1.1/", "invalid"),
+                         ("http://purl.org/dc/elements/1.1/", "2002"),
+                         ("http://purl.org/dc/elements/1.1/", "2002-10") ] {
+      let xml = "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' xmlns='http://purl.org/rss/1.0/' xmlns:dc='\(uri)'><channel/><item><title>Invalid date</title><dc:date>\(value)</dc:date></item></rdf:RDF>"
+      let item = try XCTUnwrap(PodcastFeedParser().parse(data: Data(xml.utf8)).episodes.first)
+      XCTAssertNil(item.notificationPublicationDate)
+      XCTAssertNil(PodcastEpisodeNotificationService.identity(item))
     }
   }
 
@@ -920,7 +994,11 @@ final class PodcastNotificationRefreshTests: XCTestCase {
     try verifyRefreshes(firstFails: false, rss1: true)
   }
 
-  private func verifyRefreshes(firstFails: Bool, invalidPayload: Bool = false, rss1: Bool = false) throws {
+  func testRSS1DublinCoreNetworkRefreshAlertsWithoutGUIDOrEnclosure() throws {
+    try verifyRefreshes(firstFails: false, rss1: true, dublinCore: true)
+  }
+
+  private func verifyRefreshes(firstFails: Bool, invalidPayload: Bool = false, rss1: Bool = false, dublinCore: Bool = false) throws {
     let suite = "Castify.NotificationRefreshTests." + UUID().uuidString
     let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
     defer { defaults.removePersistentDomain(forName: suite); StubAlertFeedProtocol.responses = [] }
@@ -962,14 +1040,18 @@ final class PodcastNotificationRefreshTests: XCTestCase {
         fixture.time = Date(timeIntervalSince1970: 160)
       }
       let date = ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: timestamp))
-      let item = "<item><title>Stub \(guid)</title><guid>\(guid)</guid><pubDate>\(date)</pubDate><enclosure url='https://feed-alert-tests.invalid/\(guid).mp3'/></item>"
-      let xml = rss1 ? "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' xmlns='http://purl.org/rss/1.0/'><channel/>\(item)</rdf:RDF>" :
+      let item = dublinCore ? "<item><title>Stub \(guid)</title><link>https://feed-alert-tests.invalid/\(guid)</link><dc:date>\(date)</dc:date></item>" :
+        "<item><title>Stub \(guid)</title><guid>\(guid)</guid><pubDate>\(date)</pubDate><enclosure url='https://feed-alert-tests.invalid/\(guid).mp3'/></item>"
+      let xml = rss1 ? "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' xmlns='http://purl.org/rss/1.0/' xmlns:dc='http://purl.org/dc/elements/1.1/'><channel/>\(item)</rdf:RDF>" :
         "<rss><channel>\(item)</channel></rss>"
       StubAlertFeedProtocol.responses = [.success(Data(xml.utf8))]
       let loaded = expectation(description: "Feed success")
       networking.fetchPodcastFeed(url: url) { result in
         if case .success(let feed) = result {
-          XCTAssertEqual(feed.episodes.first?.guid, guid)
+          if dublinCore {
+            XCTAssertNil(feed.episodes.first?.guid)
+            XCTAssertNotNil(feed.episodes.first.flatMap(PodcastEpisodeNotificationService.identity))
+          } else { XCTAssertEqual(feed.episodes.first?.guid, guid) }
           XCTAssertEqual(feed.episodes.first?.publicationDateIsKnown, true)
         } else { XCTFail("Expected stubbed success") }
         loaded.fulfill()

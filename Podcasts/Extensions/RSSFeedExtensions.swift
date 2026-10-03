@@ -22,6 +22,8 @@ final class PodcastFeedParser: NSObject {
   private struct EpisodeDraft {
     var title = ""
     var pubDate = Date()
+    var publicationDateIsKnown = false
+    var guid: String?
     var description = ""
     var subtitle = ""
     var author = ""
@@ -42,7 +44,9 @@ final class PodcastFeedParser: NSObject {
         author: author,
         streamUrl: streamUrl,
         imageUrl: imageUrl ?? fallbackImageUrl,
-        duration: duration
+        duration: duration,
+        guid: guid,
+        publicationDateIsKnown: publicationDateIsKnown
       )
     }
   }
@@ -53,6 +57,8 @@ final class PodcastFeedParser: NSObject {
   private var currentEpisode: EpisodeDraft?
   private var elementStack = [String]()
   private var textStack = [String]()
+  private var channelCount = 0
+  private var isRDFRoot = false
 
   func parse(data: Data) throws -> ParsedPodcastFeed {
     feedDescription = ""
@@ -61,11 +67,16 @@ final class PodcastFeedParser: NSObject {
     currentEpisode = nil
     elementStack = []
     textStack = []
+    channelCount = 0
+    isRDFRoot = false
 
     let parser = XMLParser(data: data)
     parser.delegate = self
+    parser.shouldProcessNamespaces = true
 
-    if parser.parse() {
+    // Well-formed error/HTML XML is not a successful RSS snapshot. An empty
+    // RSS channel is valid, so do not require episodes to establish a baseline.
+    if parser.parse(), channelCount == 1 {
       return ParsedPodcastFeed(
         description: feedDescription.strippingHTML,
         imageUrl: feedImageUrl,
@@ -84,30 +95,47 @@ final class PodcastFeedParser: NSObject {
     elementName.lowercased()
   }
 
+  private func element(_ name: String, qualifiedName: String?, namespaceURI: String?) -> String {
+    if namespaceURI == "http://www.w3.org/1999/02/22-rdf-syntax-ns#", normalized(name) == "rdf" {
+      return "rdf:rdf"
+    }
+    if namespaceURI == "http://purl.org/rss/1.0/" { return normalized(name) }
+    if namespaceURI == "http://purl.org/dc/elements/1.1/" { return "dc:" + normalized(name) }
+    return normalized(qualifiedName ?? name)
+  }
+
   private func trimmed(_ text: String) -> String {
     text.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
-  private func date(from value: String) -> Date {
+  private func date(from value: String) -> Date? {
     let formats = [
       "E, d MMM yyyy HH:mm:ss Z",
       "E, dd MMM yyyy HH:mm:ss Z",
       "d MMM yyyy HH:mm:ss Z",
       "dd MMM yyyy HH:mm:ss Z",
+      "E, d MMM yyyy HH:mm Z",
+      "E, dd MMM yyyy HH:mm Z",
+      "d MMM yyyy HH:mm Z",
+      "dd MMM yyyy HH:mm Z",
       "yyyy-MM-dd'T'HH:mm:ssZ",
-      "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+      "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+      "yyyy-MM-dd'T'HH:mmZ",
+      "yyyy-MM-dd"
     ]
 
     for format in formats {
+      if format == "yyyy-MM-dd", value.count != 10 { continue }
       let formatter = DateFormatter()
       formatter.locale = Locale(identifier: "en_US_POSIX")
+      formatter.timeZone = TimeZone(secondsFromGMT: 0)
       formatter.dateFormat = format
       if let date = formatter.date(from: value) {
         return date
       }
     }
 
-    return ISO8601DateFormatter().date(from: value) ?? Date()
+    return ISO8601DateFormatter().date(from: value)
   }
 
   private func duration(from value: String) -> TimeInterval? {
@@ -138,11 +166,19 @@ extension PodcastFeedParser: XMLParserDelegate {
               namespaceURI: String?,
               qualifiedName qName: String?,
               attributes attributeDict: [String: String] = [:]) {
-    let element = normalized(elementName)
+    let element = element(elementName, qualifiedName: qName, namespaceURI: namespaceURI)
+    if elementStack.isEmpty {
+      isRDFRoot = namespaceURI == "http://www.w3.org/1999/02/22-rdf-syntax-ns#" && normalized(elementName) == "rdf"
+    }
     elementStack.append(element)
     textStack.append("")
 
-    if element == "item" {
+    let isRSS1Element = isRDFRoot && namespaceURI == "http://purl.org/rss/1.0/"
+    if elementStack == ["rss", "channel"] || (isRSS1Element && elementStack == ["rdf:rdf", "channel"]) {
+      channelCount += 1
+    }
+
+    if elementStack == ["rss", "channel", "item"] || (isRSS1Element && elementStack == ["rdf:rdf", "item"]) {
       currentEpisode = EpisodeDraft()
       return
     }
@@ -184,7 +220,7 @@ extension PodcastFeedParser: XMLParserDelegate {
               didEndElement elementName: String,
               namespaceURI: String?,
               qualifiedName qName: String?) {
-    let element = normalized(elementName)
+    let element = element(elementName, qualifiedName: qName, namespaceURI: namespaceURI)
     let rawText = textStack.popLast() ?? ""
     let text = trimmed(rawText)
 
@@ -198,12 +234,18 @@ extension PodcastFeedParser: XMLParserDelegate {
         }
       case "itunes:subtitle":
         episode.subtitle = text
-      case "itunes:author", "author":
-        if !text.isEmpty {
+      case "itunes:author", "author", "dc:creator":
+        if !text.isEmpty && (element != "dc:creator" || namespaceURI == "http://purl.org/dc/elements/1.1/") {
           episode.author = text
         }
-      case "pubdate":
-        episode.pubDate = date(from: text)
+      case "guid":
+        episode.guid = text
+      case "pubdate", "dc:date":
+        if (element == "pubdate" || namespaceURI == "http://purl.org/dc/elements/1.1/"),
+           let parsedDate = date(from: text) {
+          episode.pubDate = parsedDate
+          episode.publicationDateIsKnown = true
+        }
       case "itunes:duration":
         episode.duration = duration(from: text)
       default:

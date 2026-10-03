@@ -94,6 +94,9 @@ enum AppText: String {
   case storageUsed
   case clearDownloads
   case notifications
+  case podcastEpisodeAlerts
+  case podcastEpisodeAlertsHelp
+  case newEpisodeAlertBody
   case subscriptions
   case subscribedPodcasts
   case notificationsNeedPermission
@@ -197,6 +200,9 @@ final class LocalizationService: ObservableObject {
       .storageUsed: "Storage used",
       .clearDownloads: "Clear downloads",
       .notifications: "Notifications",
+      .podcastEpisodeAlerts: "New episode alerts",
+      .podcastEpisodeAlertsHelp: "Alerts are checked when feeds refresh. Enable Notifications in Settings and allow them in iOS. Turning this on starts with a fresh baseline; earlier episodes are not announced.",
+      .newEpisodeAlertBody: "%d new episodes. Latest: %@",
       .subscriptions: "Subscriptions",
       .subscribedPodcasts: "Subscribed podcasts",
       .notificationsNeedPermission: "Notifications need permission from iOS",
@@ -291,6 +297,9 @@ final class LocalizationService: ObservableObject {
       .storageUsed: "已用存储",
       .clearDownloads: "清除下载",
       .notifications: "通知",
+      .podcastEpisodeAlerts: "新单集提醒",
+      .podcastEpisodeAlertsHelp: "刷新订阅源时检查提醒。请在设置中启用通知并允许 iOS 通知权限。开启后会重新建立基线，不会提醒之前的单集。",
+      .newEpisodeAlertBody: "%d 个新单集。最新：%@",
       .subscriptions: "订阅",
       .subscribedPodcasts: "已订阅播客",
       .notificationsNeedPermission: "通知需要 iOS 授权",

@@ -140,14 +140,14 @@ extension PodcastsService {
 
   func containsPodcast(_ podcast: Podcast) -> Bool {
     subscribedPodcasts.contains { savedPodcast in
-      matches(savedPodcast, podcast)
+      Self.matches(savedPodcast, podcast)
     }
   }
 
   @discardableResult
   func addPodcast(_ podcast: Podcast) -> Bool {
     var podcasts = subscribedPodcasts
-    guard !podcasts.contains(where: { matches($0, podcast) }) else {
+    guard !podcasts.contains(where: { Self.matches($0, podcast) }) else {
       return false
     }
 
@@ -161,7 +161,7 @@ extension PodcastsService {
     var addedCount = 0
 
     podcasts.forEach { podcast in
-      guard !savedPodcasts.contains(where: { matches($0, podcast) }) else {
+      guard !savedPodcasts.contains(where: { Self.matches($0, podcast) }) else {
         return
       }
 
@@ -179,14 +179,20 @@ extension PodcastsService {
   func deletePodcast(_ podcast: Podcast) {
     let podcasts = subscribedPodcasts
     let filteredPodcasts = podcasts.filter { pod -> Bool in
-      !matches(pod, podcast)
+      !Self.matches(pod, podcast)
     }
 
     guard filteredPodcasts.count != podcasts.count else {
       return
     }
 
-    _ = saveSubscribedPodcasts(filteredPodcasts, failureMessage: "Failed to delete podcast: " + podcast.trackName)
+    if saveSubscribedPodcasts(filteredPodcasts, failureMessage: "Failed to delete podcast: " + podcast.trackName) {
+      let removed = podcasts.filter { Self.matches($0, podcast) }
+      let cancelAlerts = {
+        removed.forEach { PodcastEpisodeNotificationService.shared.subscriptionRemoved($0) }
+      }
+      if Thread.isMainThread { cancelAlerts() } else { DispatchQueue.main.async(execute: cancelAlerts) }
+    }
   }
 
   func episodeDownloaded(_ episode: Episode) -> Bool {
@@ -484,7 +490,7 @@ extension PodcastsService {
     return documentsURL.appendingPathComponent("Episodes", isDirectory: true)
   }
 
-  fileprivate func matches(_ lhs: Podcast, _ rhs: Podcast) -> Bool {
+  static func matches(_ lhs: Podcast, _ rhs: Podcast) -> Bool {
     if lhs.trackId != 0 && lhs.trackId == rhs.trackId {
       return true
     }

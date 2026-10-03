@@ -3,6 +3,8 @@ import Foundation
 final class NetworkingService: NSObject {
 
   fileprivate var podcastsService: PodcastsService?
+  private let notificationService: PodcastEpisodeNotificationService
+  private let feedSession: URLSession
   private lazy var downloadSession: URLSession = {
     let configuration = URLSessionConfiguration.default
     configuration.waitsForConnectivity = true
@@ -19,8 +21,12 @@ final class NetworkingService: NSObject {
   private var downloadedFileURLs = [Int: URL]()
   private let downloadStateQueue = DispatchQueue(label: "com.castify.download-state")
 
-  init(podcastsService: PodcastsService = .init()) {
+  init(podcastsService: PodcastsService = .init(),
+       notificationService: PodcastEpisodeNotificationService = .shared,
+       feedSession: URLSession = .shared) {
     self.podcastsService = podcastsService
+    self.notificationService = notificationService
+    self.feedSession = feedSession
     super.init()
   }
 
@@ -196,7 +202,13 @@ extension NetworkingService {
   }
 
   func fetchPodcastFeed(url: URL, completionHandler: @escaping (Result<ParsedPodcastFeed, Error>) -> Void) {
-    URLSession.shared.dataTask(with: url) { data, response, error in
+    guard Thread.isMainThread else {
+      DispatchQueue.main.async { self.fetchPodcastFeed(url: url, completionHandler: completionHandler) }
+      return
+    }
+    let notifications = notificationService
+    let refresh = notifications.beginRefresh(feedURL: url.absoluteString)
+    feedSession.dataTask(with: url) { data, response, error in
       if let error = error {
         DispatchQueue.main.async {
           completionHandler(.failure(error))
@@ -216,6 +228,7 @@ extension NetworkingService {
       do {
         let feed = try PodcastFeedParser().parse(data: data)
         DispatchQueue.main.async {
+          notifications.completeRefresh(refresh, episodes: feed.episodes)
           completionHandler(.success(feed))
         }
       } catch {

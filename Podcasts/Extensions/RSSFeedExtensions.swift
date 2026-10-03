@@ -22,6 +22,8 @@ final class PodcastFeedParser: NSObject {
   private struct EpisodeDraft {
     var title = ""
     var pubDate = Date()
+    var publicationDateIsKnown = false
+    var guid: String?
     var description = ""
     var subtitle = ""
     var author = ""
@@ -42,7 +44,9 @@ final class PodcastFeedParser: NSObject {
         author: author,
         streamUrl: streamUrl,
         imageUrl: imageUrl ?? fallbackImageUrl,
-        duration: duration
+        duration: duration,
+        guid: guid,
+        publicationDateIsKnown: publicationDateIsKnown
       )
     }
   }
@@ -88,7 +92,7 @@ final class PodcastFeedParser: NSObject {
     text.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
-  private func date(from value: String) -> Date {
+  private func date(from value: String) -> Date? {
     let formats = [
       "E, d MMM yyyy HH:mm:ss Z",
       "E, dd MMM yyyy HH:mm:ss Z",
@@ -107,7 +111,7 @@ final class PodcastFeedParser: NSObject {
       }
     }
 
-    return ISO8601DateFormatter().date(from: value) ?? Date()
+    return ISO8601DateFormatter().date(from: value)
   }
 
   private func duration(from value: String) -> TimeInterval? {
@@ -202,8 +206,13 @@ extension PodcastFeedParser: XMLParserDelegate {
         if !text.isEmpty {
           episode.author = text
         }
+      case "guid":
+        episode.guid = text
       case "pubdate":
-        episode.pubDate = date(from: text)
+        if let parsedDate = date(from: text) {
+          episode.pubDate = parsedDate
+          episode.publicationDateIsKnown = true
+        }
       case "itunes:duration":
         episode.duration = duration(from: text)
       default:

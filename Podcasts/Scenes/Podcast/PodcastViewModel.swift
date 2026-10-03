@@ -4,21 +4,25 @@ final class PodcastViewModel: ObservableObject {
 
   // MARK: - Private
   fileprivate let networkingService = NetworkingService()
+  private let notificationService: PodcastEpisodeNotificationService
   fileprivate let podcastsService   = PodcastsService()
 
   // MARK: - Properties
   let podcast: Podcast
   @Published private(set) var description: String = ""
   @Published private(set) var subscribed: Bool
+  @Published private(set) var episodeAlertsEnabled: Bool
   @Published private(set) var isLoading: Bool = false
   @Published private(set) var errorMessage: String?
   @Published private(set) var episodes = [Episode]()
   @Published private(set) var playbackStateRevision = 0
   // var dataSource: TableViewDataSource<Episode, EpisodeCell>?
 
-  init(podcast: Podcast) {
+  init(podcast: Podcast, notificationService: PodcastEpisodeNotificationService = .shared) {
+    self.notificationService = notificationService
     self.podcast = podcast
     self.subscribed = podcastsService.containsPodcast(self.podcast)
+    self.episodeAlertsEnabled = notificationService.isEnabled(for: podcast)
   }
 }
 
@@ -79,6 +83,7 @@ extension PodcastViewModel {
   func unsubscribe() {
     podcastsService.deletePodcast(podcast)
     self.subscribed = false
+    self.episodeAlertsEnabled = false
   }
 
   func playbackState(for episode: Episode) -> EpisodePlaybackState? {
@@ -108,7 +113,14 @@ extension PodcastViewModel {
     playbackStateRevision += 1
   }
 
+  func setEpisodeAlertsEnabled(_ enabled: Bool) {
+    notificationService.setEnabled(enabled, for: podcast)
+    episodeAlertsEnabled = notificationService.isEnabled(for: podcast)
+  }
+
   func refreshEpisodeStates() {
+    subscribed = podcastsService.containsPodcast(podcast)
+    episodeAlertsEnabled = notificationService.isEnabled(for: podcast)
     playbackStateRevision += 1
   }
 

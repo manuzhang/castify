@@ -186,7 +186,13 @@ extension PodcastsService {
       return
     }
 
-    _ = saveSubscribedPodcasts(filteredPodcasts, failureMessage: "Failed to delete podcast: " + podcast.trackName)
+    if saveSubscribedPodcasts(filteredPodcasts, failureMessage: "Failed to delete podcast: " + podcast.trackName) {
+      let removed = podcasts.filter { matches($0, podcast) }
+      let cancelAlerts = {
+        removed.forEach { PodcastEpisodeNotificationService.shared.subscriptionRemoved($0) }
+      }
+      if Thread.isMainThread { cancelAlerts() } else { DispatchQueue.main.async(execute: cancelAlerts) }
+    }
   }
 
   func episodeDownloaded(_ episode: Episode) -> Bool {

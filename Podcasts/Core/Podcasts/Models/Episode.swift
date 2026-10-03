@@ -2,6 +2,8 @@ import Foundation
 
 class Episode: Codable, Equatable, Hashable {
 
+  let guid: String?
+  let publicationDateIsKnown: Bool?
   let title: String
   let pubDate: Date
   let description: String
@@ -25,7 +27,11 @@ class Episode: Codable, Equatable, Hashable {
        streamUrl: String = "",
        imageUrl: String? = nil,
        duration: TimeInterval? = nil,
-       fileUrl: String? = nil) {
+       fileUrl: String? = nil,
+       guid: String? = nil,
+       publicationDateIsKnown: Bool? = nil) {
+    self.guid = guid
+    self.publicationDateIsKnown = publicationDateIsKnown
     self.title = title
     self.pubDate = pubDate
     self.description = description
@@ -35,6 +41,11 @@ class Episode: Codable, Equatable, Hashable {
     self.imageUrl = imageUrl
     self.duration = duration
     self.fileUrl = fileUrl
+  }
+
+  // Older caches and RSS items without a valid date must not look newly published.
+  var notificationPublicationDate: Date? {
+    publicationDateIsKnown == true ? pubDate : nil
   }
 
   func hash(into hasher: inout Hasher) {

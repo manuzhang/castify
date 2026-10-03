@@ -39,14 +39,19 @@ notification delegate and rechecks the current global/subscription preference.
 
 ## Preference changes and races
 
-Per-feed preferences, seen hashes, baseline cutoff and generation are stored in
+Membership uses the library's existing matching rules: a shared nonzero track ID,
+then a normalized feed URL. A Browse result with an updated URL controls the saved
+subscription's preference; library refreshes continue using that saved feed URL.
+
+Active per-feed preferences, seen hashes, baseline cutoff and generation are stored in
 one versioned `UserDefaults` record. Existing global values are retained. A missing,
 corrupt or unknown-version record defaults all per-podcast settings off; there is
 no migration that opts anyone in or requests permission.
 
-Disabling a podcast cancels its pending requests and invalidates refreshes,
+Disabling a podcast removes its stored record, cancels its pending requests and invalidates refreshes,
 authorization lookups and additions already in flight. Unsubscribe does the same;
-resubscription defaults off. Re-enabling starts a fresh baseline, suppressing
+resubscription defaults off. Startup also prunes legacy disabled records and records
+for absent subscriptions, so inactive feeds do not accumulate across launches. Re-enabling starts a fresh baseline, suppressing
 releases from the disabled period. Global preference changes preserve per-podcast
 opt-ins but cancel pending requests and start fresh baselines. Existing Settings
 behavior for explicitly requesting permission and clearing delivered notifications
@@ -111,3 +116,22 @@ runner-created simulators were removed; existing simulator data was preserved.
 Actual OS display/permission/background behavior and live UI tapping remain
 unverified as described above. No notification permission prompt, remote feed
 request from the new tests, push or PR publication was performed.
+
+## Review-fix validation — 2026-10-03
+
+Both review findings are addressed: Browse uses the saved subscription matched by
+the library's track-ID/feed rules, and disabled/unsubscribed preferences are
+removed rather than retained. Startup prunes legacy disabled records once.
+Four added regressions cover changed Browse feeds, zero-ID imports, repeated
+disabling without preference growth, and one-time legacy cleanup; unsubscribe
+and startup tests also assert removal. Existing delayed-callback and replacement
+generation tests continue to pass.
+
+- XcodeGen regeneration passed without project drift; the generic iOS Simulator
+  build passed. iOS 13 deployment and dependency versions are unchanged.
+- The full serial runner passed **56 tests, 0 failures, 0 skips** on iPhone Air,
+  iOS 26.4.1, including 34 preference/delivery/race tests.
+- Results: `build/test-results/run.SG1WYO/Tests.xcresult` and `xcodebuild.log`;
+  build log: `/tmp/castify-podcast-notifications-review-build.log`; exported
+  summary: `/tmp/castify-podcast-notifications-review-test-summary.json`.
+- The same physical-device/OS delivery and UI limitations above still apply.

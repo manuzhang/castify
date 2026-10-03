@@ -207,7 +207,7 @@ final class PodcastEpisodeNotificationTests: XCTestCase {
     XCTAssertEqual(center.requests.count, 1)
   }
 
-  func testUnsubscribeCancelsPendingAndResubscriptionDefaultsOff() {
+  func testUnsubscribeCancelsPendingAndResubscriptionDefaultsOff() throws {
     baseline()
     newRefresh()
     let outstanding = service.beginRefresh(feedURL: podcast.feedUrl)
@@ -215,18 +215,23 @@ final class PodcastEpisodeNotificationTests: XCTestCase {
     service.subscriptionRemoved(podcast)
     service.completeRefresh(outstanding, episodes: [episode("late", at: 115)])
     XCTAssertTrue(center.pending.isEmpty)
+    XCTAssertTrue(try storedPreferences().isEmpty)
     fixture.podcasts = [podcast]
     XCTAssertFalse(service.isEnabled(for: podcast))
     XCTAssertNil(service.beginRefresh(feedURL: podcast.feedUrl))
     XCTAssertEqual(center.requests.count, 1)
   }
 
-  func testStartupRemovesPreferencesForAbsentSubscriptions() {
+  func testStartupRemovesPreferencesForAbsentSubscriptions() throws {
     baseline()
     newRefresh()
     fixture.podcasts = []
     service = makeService()
     XCTAssertTrue(center.pending.isEmpty)
+    XCTAssertTrue(try storedPreferences().isEmpty)
+    let cancellationCount = center.removals.count
+    service = makeService()
+    XCTAssertEqual(center.removals.count, cancellationCount)
     fixture.podcasts = [podcast]
     XCTAssertFalse(service.isEnabled(for: podcast))
   }
@@ -247,6 +252,75 @@ final class PodcastEpisodeNotificationTests: XCTestCase {
     service.completeRefresh(ticket, episodes: [episode("new", at: 110)])
     refresh([episode("new", at: 110)])
     XCTAssertEqual(center.requests.count, 1)
+  }
+
+  func testChangedBrowseFeedUsesSavedSubscriptionPreferenceAndRefresh() throws {
+    let browsePodcast = makePodcast("https://example.test/changed-feed")
+    defaults.set(true, forKey: UserDefaults.notificationsEnabledKey)
+    service.globalPreferenceDidChange()
+    service.setEnabled(true, for: browsePodcast)
+    XCTAssertTrue(service.isEnabled(for: browsePodcast))
+    XCTAssertTrue(service.isEnabled(for: podcast))
+    XCTAssertEqual(Set(try storedPreferences().keys), [podcast.feedUrl])
+    refresh([episode("old", at: 50)])
+    newRefresh()
+    XCTAssertEqual(center.pending.count, 1)
+    service = makeService()
+    XCTAssertTrue(service.isEnabled(for: browsePodcast))
+    service.setEnabled(false, for: browsePodcast)
+    XCTAssertFalse(service.isEnabled(for: podcast))
+    XCTAssertTrue(center.pending.isEmpty)
+    XCTAssertTrue(try storedPreferences().isEmpty)
+  }
+
+  func testZeroTrackIDsRequireMatchingFeedsAndDoNotSharePreferences() {
+    let imported = makePodcast("https://example.test/imported", trackId: 0)
+    let unrelated = makePodcast("https://example.test/unrelated", trackId: 0)
+    fixture.podcasts = [imported]
+    service.setEnabled(true, for: unrelated)
+    XCTAssertFalse(service.isEnabled(for: unrelated))
+    XCTAssertFalse(service.isEnabled(for: imported))
+    let alias = makePodcast("HTTP://EXAMPLE.TEST/imported", trackId: 0)
+    service.setEnabled(true, for: alias)
+    XCTAssertTrue(service.isEnabled(for: imported))
+    XCTAssertFalse(service.isEnabled(for: unrelated))
+  }
+
+  func testDisablingManyFeedsDoesNotAccumulateStoredPreferences() throws {
+    baseline()
+    for index in 2...25 {
+      let other = makePodcast("https://example.test/feed-\(index)", trackId: index)
+      fixture.podcasts.append(other)
+      service.setEnabled(true, for: other)
+      service.setEnabled(false, for: other)
+    }
+    XCTAssertEqual(Set(try storedPreferences().keys), [podcast.feedUrl])
+    service.setEnabled(false, for: podcast)
+    XCTAssertTrue(try storedPreferences().isEmpty)
+    let cancellationCount = center.removals.count
+    service = makeService()
+    XCTAssertEqual(center.removals.count, cancellationCount)
+  }
+
+  func testLegacyDisabledRecordsArePrunedOnceAtStartup() throws {
+    service.setEnabled(true, for: podcast)
+    let data = try XCTUnwrap(defaults.data(forKey: UserDefaults.podcastNotificationPreferencesKey))
+    var store = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    var preferences = try storedPreferences()
+    var disabled = try XCTUnwrap(preferences[podcast.feedUrl] as? [String: Any])
+    disabled["enabled"] = false
+    preferences[podcast.feedUrl] = disabled
+    store["preferences"] = preferences
+    defaults.set(try JSONSerialization.data(withJSONObject: store), forKey: UserDefaults.podcastNotificationPreferencesKey)
+    center.removals.removeAll()
+    service = makeService()
+    XCTAssertFalse(service.isEnabled(for: podcast))
+    XCTAssertTrue(try storedPreferences().isEmpty)
+    XCTAssertEqual(center.removals.count, 1)
+    let cleaned = defaults.data(forKey: UserDefaults.podcastNotificationPreferencesKey)
+    service = makeService()
+    XCTAssertEqual(center.removals.count, 1)
+    XCTAssertEqual(defaults.data(forKey: UserDefaults.podcastNotificationPreferencesKey), cleaned)
   }
 
   func testNewestStartedRefreshWinsOverOutOfOrderResponses() {
@@ -363,7 +437,7 @@ final class PodcastEpisodeNotificationTests: XCTestCase {
   }
 
   func testIdenticalGUIDsInDifferentPodcastsAreIndependentAndCancellationIsScoped() {
-    let other = makePodcast("https://example.test/other")
+    let other = makePodcast("https://example.test/other", trackId: 2)
     fixture.podcasts.append(other)
     baseline()
     service.setEnabled(true, for: other)
@@ -453,8 +527,14 @@ final class PodcastEpisodeNotificationTests: XCTestCase {
             streamUrl: "https://example.test/\(guid).mp3", guid: guid, publicationDateIsKnown: true)
   }
 
-  private func makePodcast(_ feed: String) -> Podcast {
-    Podcast(trackId: 1, trackName: "Example Podcast", trackCount: 0, artistName: "Test", artworkUrl100: "", feedUrl: feed)
+  private func storedPreferences() throws -> [String: Any] {
+    let data = try XCTUnwrap(defaults.data(forKey: UserDefaults.podcastNotificationPreferencesKey))
+    let store = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    return try XCTUnwrap(store["preferences"] as? [String: Any])
+  }
+
+  private func makePodcast(_ feed: String, trackId: Int = 1) -> Podcast {
+    Podcast(trackId: trackId, trackName: "Example Podcast", trackCount: 0, artistName: "Test", artworkUrl100: "", feedUrl: feed)
   }
 }
 

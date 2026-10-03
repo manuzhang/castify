@@ -84,23 +84,29 @@ final class PodcastEpisodeNotificationService {
     } else {
       store = Store(globalEnabled: userDefaults.bool(forKey: UserDefaults.notificationsEnabledKey))
     }
-    globalPreferenceDidChange()
-    for feed in Array(store.preferences.keys) where !isSubscribed(feed) {
+    // Prune legacy disabled records as well as removed subscriptions once.
+    for feed in Array(store.preferences.keys) where !isSubscribed(feed) || store.preferences[feed]?.enabled != true {
       disable(feed)
     }
+    globalPreferenceDidChange()
   }
 
   func isEnabled(for podcast: Podcast) -> Bool {
-    let feed = Self.feedKey(podcast.feedUrl)
-    return isSubscribed(feed) && (store.preferences[feed]?.enabled ?? false)
+    guard let subscription = subscription(matching: podcast) else { return false }
+    return store.preferences[Self.feedKey(subscription.feedUrl)]?.enabled ?? false
   }
 
   func setEnabled(_ enabled: Bool, for podcast: Podcast) {
-    let feed = Self.feedKey(podcast.feedUrl)
-    guard isSubscribed(feed), !feed.isEmpty else { return }
-    let previous = store.preferences[feed] ?? Preference()
-    guard previous.enabled != enabled else { return }
-    center.removePending(prefix: prefix(feed: feed, generation: previous.generation))
+    // Browse may return a changed URL for the same track ID. Use the saved
+    // subscription's feed so both screens control the same refresh generation.
+    guard let subscription = subscription(matching: podcast) else { return }
+    let feed = Self.feedKey(subscription.feedUrl)
+    guard !feed.isEmpty else { return }
+    guard enabled else { disable(feed); return }
+    guard store.preferences[feed]?.enabled != true else { return }
+    if let previous = store.preferences[feed] {
+      center.removePending(prefix: prefix(feed: feed, generation: previous.generation))
+    }
     // Each new opt-in needs a fresh network snapshot, even if the screen already
     // has cached episodes. Neither toggling nor migration requests permission.
     store.preferences[feed] = Preference(enabled: enabled, cutoff: now())
@@ -214,6 +220,10 @@ final class PodcastEpisodeNotificationService {
       store.preferences[refresh.feed]?.generation == refresh.generation
   }
 
+  private func subscription(matching podcast: Podcast) -> Podcast? {
+    subscriptions().first { PodcastsService.matches($0, podcast) }
+  }
+
   private func isSubscribed(_ feed: String) -> Bool {
     subscriptions().contains { Self.feedKey($0.feedUrl) == feed }
   }
@@ -221,7 +231,7 @@ final class PodcastEpisodeNotificationService {
   private func disable(_ feed: String) {
     guard let previous = store.preferences[feed] else { return }
     center.removePending(prefix: prefix(feed: feed, generation: previous.generation))
-    store.preferences[feed] = Preference(cutoff: now())
+    store.preferences.removeValue(forKey: feed)
     latestRefresh.removeValue(forKey: feed)
     save()
   }

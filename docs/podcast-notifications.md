@@ -46,7 +46,10 @@ subscription's preference; library refreshes continue using that saved feed URL.
 Active per-feed preferences, seen hashes, baseline cutoff and generation are stored in
 one versioned `UserDefaults` record. Existing global values are retained. A missing,
 corrupt or unknown-version record defaults all per-podcast settings off; there is
-no migration that opts anyone in or requests permission.
+no migration that opts anyone in or requests permission. Discarding a corrupt or
+unknown-version record cancels app-owned pending episode requests and persists
+the recovered preference store. A delayed cleanup rechecks current generations so it
+preserves new alerts enabled during recovery and leaves unrelated requests alone.
 
 Disabling a podcast removes its stored record, cancels its pending requests and invalidates refreshes,
 authorization lookups and additions already in flight. Unsubscribe does the same;
@@ -135,3 +138,16 @@ generation tests continue to pass.
   build log: `/tmp/castify-podcast-notifications-review-build.log`; exported
   summary: `/tmp/castify-podcast-notifications-review-test-summary.json`.
 - The same physical-device/OS delivery and UI limitations above still apply.
+
+The subsequent invalid-store recovery review is also addressed: corrupt or
+unknown-version preferences cancel only obsolete app-owned pending episode
+requests. Main-thread generation rechecks preserve new opt-ins even when the
+lookup completes late, and the recovered store is persisted. Two added
+regressions cover invalid-record cleanup with unrelated requests and delayed
+cleanup with a replacement generation.
+
+Final recovery validation passed XcodeGen regeneration without drift, the
+generic simulator build, and **58 tests, 0 failures, 0 skips** (36 notification
+preference/delivery/race tests). Bundle/log: `build/test-results/run.GAQcH9/Tests.xcresult`
+and `xcodebuild.log`; build log: `/tmp/castify-podcast-notifications-recovery-build.log`;
+summary: `/tmp/castify-podcast-notifications-recovery-test-summary.json`.

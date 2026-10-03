@@ -5,6 +5,7 @@ import UserNotifications
 protocol EpisodeNotificationCenter {
   func authorizationStatus(_ completion: @escaping (UNAuthorizationStatus) -> Void)
   func add(_ request: UNNotificationRequest, completion: @escaping (Error?) -> Void)
+  func pendingRequests(_ completion: @escaping ([UNNotificationRequest]) -> Void)
   func removePending(prefix: String)
   func removePending(identifier: String)
 }
@@ -18,6 +19,10 @@ struct LocalEpisodeNotificationCenter: EpisodeNotificationCenter {
 
   func add(_ request: UNNotificationRequest, completion: @escaping (Error?) -> Void) {
     center.add(request, withCompletionHandler: completion)
+  }
+
+  func pendingRequests(_ completion: @escaping ([UNNotificationRequest]) -> Void) {
+    center.getPendingNotificationRequests(completionHandler: completion)
   }
 
   func removePending(prefix: String) {
@@ -77,8 +82,8 @@ final class PodcastEpisodeNotificationService {
     self.subscriptions = subscriptions
     self.now = now
     self.localization = localization
-    let saved = userDefaults.data(forKey: UserDefaults.podcastNotificationPreferencesKey)
-      .flatMap { try? JSONDecoder().decode(Store.self, from: $0) }
+    let savedData = userDefaults.data(forKey: UserDefaults.podcastNotificationPreferencesKey)
+    let saved = savedData.flatMap { try? JSONDecoder().decode(Store.self, from: $0) }
     if let saved = saved, saved.version == 1 {
       store = saved
     } else {
@@ -89,6 +94,21 @@ final class PodcastEpisodeNotificationService {
       disable(feed)
     }
     globalPreferenceDidChange()
+    if savedData != nil && saved?.version != 1 { cancelDiscardedStoreRequests() }
+  }
+
+  private func cancelDiscardedStoreRequests() {
+    // The discarded generations cannot be decoded. Inspect only app-owned
+    // requests, then recheck current preferences on main so a delayed lookup
+    // cannot cancel alerts from a new opt-in during recovery.
+    center.pendingRequests { requests in
+      Self.onMain {
+        for request in requests where request.identifier.hasPrefix("castify.episodes.") && !self.shouldPresent(request) {
+          self.center.removePending(identifier: request.identifier)
+        }
+        self.save()
+      }
+    }
   }
 
   func isEnabled(for podcast: Podcast) -> Bool {

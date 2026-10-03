@@ -14,6 +14,8 @@ private final class RecordingAlertCenter: EpisodeNotificationCenter {
   var status: UNAuthorizationStatus = .authorized
   var deferAuthorization = false
   var deferAdd = false
+  var deferPendingLookup = false
+  var pendingLookups: [([UNNotificationRequest]) -> Void] = []
   var addError: Error?
   var statusCalls = 0
   var requests: [UNNotificationRequest] = []
@@ -34,6 +36,10 @@ private final class RecordingAlertCenter: EpisodeNotificationCenter {
       completion(self.addError)
     }
     if deferAdd { additions.append(finish) } else { finish() }
+  }
+
+  func pendingRequests(_ completion: @escaping ([UNNotificationRequest]) -> Void) {
+    if deferPendingLookup { pendingLookups.append(completion) } else { completion(Array(pending.values)) }
   }
 
   func removePending(prefix: String) {
@@ -493,6 +499,43 @@ final class PodcastEpisodeNotificationTests: XCTestCase {
       XCTAssertTrue(defaults.bool(forKey: UserDefaults.notificationsEnabledKey))
     }
     XCTAssertTrue(center.requests.isEmpty)
+  }
+
+  func testInvalidStoreRecoveryCancelsOnlyAppOwnedPendingAlerts() throws {
+    let unrelated = UNNotificationRequest(identifier: "unrelated.reminder", content: UNMutableNotificationContent(), trigger: nil)
+    center.pending[unrelated.identifier] = unrelated
+    for data in [Data("corrupt".utf8), Data("{\"version\":99,\"globalEnabled\":true,\"preferences\":{}}".utf8)] {
+      baseline()
+      newRefresh()
+      XCTAssertEqual(center.pending.count, 2)
+      defaults.set(data, forKey: UserDefaults.podcastNotificationPreferencesKey)
+      service = makeService()
+      XCTAssertFalse(service.isEnabled(for: podcast))
+      XCTAssertTrue(defaults.bool(forKey: UserDefaults.notificationsEnabledKey))
+      XCTAssertEqual(Set(center.pending.keys), [unrelated.identifier])
+      XCTAssertTrue(try storedPreferences().isEmpty)
+    }
+  }
+
+  func testDelayedInvalidStoreCleanupPreservesReplacementGeneration() throws {
+    baseline()
+    newRefresh()
+    let old = try XCTUnwrap(center.requests.last)
+    center.deferPendingLookup = true
+    defaults.set(Data("corrupt".utf8), forKey: UserDefaults.podcastNotificationPreferencesKey)
+    service = makeService()
+    XCTAssertEqual(center.pendingLookups.count, 1)
+    baseline()
+    newRefresh()
+    let replacement = try XCTUnwrap(center.requests.last)
+    XCTAssertNotEqual(old.identifier, replacement.identifier)
+    let finishLookup = center.pendingLookups.removeFirst()
+    finishLookup(Array(center.pending.values))
+    XCTAssertEqual(Set(center.pending.keys), [replacement.identifier])
+    XCTAssertTrue(service.shouldPresent(replacement))
+    service = makeService()
+    XCTAssertTrue(service.isEnabled(for: podcast))
+    XCTAssertTrue(center.pendingLookups.isEmpty)
   }
 
   private func makeService(localization: LocalizationService? = nil) -> PodcastEpisodeNotificationService {

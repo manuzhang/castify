@@ -118,6 +118,16 @@ final class PodcastFeedParser: NSObject {
        let range = Range(match.range(at: 1), in: value), let year = Int(value[range]) {
       value.replaceSubrange(range, with: String(year + (year < 50 ? 2000 : 1900)))
     }
+    // RFC zone abbreviations have fixed offsets, even when the publication
+    // date falls in daylight-saving season. Avoid locale-dependent zone guesses.
+    let zones = ["UT": "+0000", "GMT": "+0000", "EST": "-0500", "EDT": "-0400",
+                 "CST": "-0600", "CDT": "-0500", "MST": "-0700", "MDT": "-0600",
+                 "PST": "-0800", "PDT": "-0700"]
+    if let zone = value.split(whereSeparator: { $0.isWhitespace }).last,
+       let offset = zones[String(zone).uppercased()],
+       let range = value.range(of: String(zone), options: .backwards) {
+      value.replaceSubrange(range, with: offset)
+    }
     let formats = [
       "E, d MMM yyyy HH:mm:ss Z",
       "E, dd MMM yyyy HH:mm:ss Z",

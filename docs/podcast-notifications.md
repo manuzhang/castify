@@ -18,7 +18,8 @@ notification delegate and rechecks the current global/subscription preference.
   cached screen contents are not used. That first snapshot is never announced.
 - Subsequent snapshots identify episodes by RSS GUID, then enclosure URL, then
   reliably parsed publication date/title/author. RFC 822 dates may omit seconds
-  or use two-digit years (00–49 map to 2000–2049; 50–99 map to 1950–1999);
+  or use two-digit years (00–49 map to 2000–2049; 50–99 map to 1950–1999).
+  RFC named zones UT/GMT and EST/EDT/CST/CDT/MST/MDT/PST/PDT use their fixed offsets;
   RSS 1.0 Dublin Core dates are resolved by namespace and parsed as ISO timestamps
   or UTC calendar dates. Identities are SHA-256 hashes
   scoped to a normalized subscription feed URL. Added optional episode fields
@@ -256,3 +257,13 @@ XcodeGen regeneration produced no drift; the generic iOS Simulator build passed.
 The full serial runner passed **84 tests, 0 failures** on iPhone Air, iOS 26.4.1.
 Bundle/log: `build/test-results/run.Q5n92P/Tests.xcresult` and `xcodebuild.log`.
 The physical-device/OS presentation and UI limits above still apply.
+
+The follow-up named-zone finding is addressed by normalizing UT/GMT and the eight
+RFC US standard/daylight abbreviations to fixed numeric offsets before parsing.
+This avoids locale-dependent or seasonal interpretation. Added parser cases cover
+all ten zones, both year formats and optional seconds, plus unknown-zone rejection;
+a stub-network regression verifies a named-zone episode becomes an alert candidate.
+
+Drift-free XcodeGen regeneration and the generic simulator build passed. The full
+runner passed **86 tests, 0 failures**. Bundle/log:
+`build/test-results/run.M1jwCY/Tests.xcresult` and `xcodebuild.log`.

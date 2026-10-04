@@ -896,6 +896,19 @@ final class PodcastNotificationIdentityTests: XCTestCase {
     XCTAssertEqual(try parse("<title>Valid</title><pubDate>2 Oct 2050 08:00 +0000</pubDate>").episodes.first?.notificationPublicationDate, distant)
   }
 
+  func testRFC822NamedZonesUseFixedOffsetsWithBothYearFormats() throws {
+    let utc = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-02T08:00:00Z"))
+    for (zone, hours) in [("UT", 0), ("GMT", 0), ("EST", 5), ("EDT", 4), ("CST", 6),
+                          ("CDT", 5), ("MST", 7), ("MDT", 6), ("PST", 8), ("PDT", 7)] {
+      for date in ["Fri, 02 Oct 2026 08:00:00 \(zone)", "2 Oct 26 08:00 \(zone)"] {
+        let item = try XCTUnwrap(parse("<title>Named zone</title><pubDate>\(date)</pubDate>").episodes.first)
+        XCTAssertEqual(item.notificationPublicationDate, utc.addingTimeInterval(Double(hours) * 3600), date)
+        XCTAssertEqual(item.publicationDateIsKnown, true)
+      }
+    }
+    XCTAssertNil(try parse("<title>Unknown zone</title><pubDate>2 Oct 26 08:00 UNKNOWN</pubDate>").episodes.first?.notificationPublicationDate)
+  }
+
   func testParserRejectsNonRSSDocumentsAndAllowsEmptyChannels() throws {
     let parser = PodcastFeedParser()
     for xml in ["<error/>", "<html><body>Unavailable</body></html>", "<rss/>",
@@ -1109,6 +1122,17 @@ final class PodcastNotificationRefreshTests: XCTestCase {
     }
   }
 
+  func testNamedZoneNetworkRefreshDiscoversAnEligibleEpisode() throws {
+    try withNetworking { networking, _, center, fixture, podcast in
+      let url = try XCTUnwrap(URL(string: podcast.feedUrl))
+      load(networking, url: url, podcast: podcast, guid: "baseline", timestamp: 50)
+      fixture.time = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-02T13:01:00Z"))
+      load(networking, url: url, podcast: podcast, guid: "named-zone", publicationDate: "Fri, 2 Oct 26 08:00 EST")
+      XCTAssertEqual(center.requests.count, 1)
+      XCTAssertEqual(center.requests.first?.content.body, "Stub named-zone")
+    }
+  }
+
   private func withNetworking(_ body: (NetworkingService, PodcastEpisodeNotificationService, RecordingAlertCenter, AlertFixtures, Podcast) throws -> Void) throws {
     let suite = "Castify.NotificationRefreshTests." + UUID().uuidString
     let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -1128,8 +1152,8 @@ final class PodcastNotificationRefreshTests: XCTestCase {
     try body(NetworkingService(notificationService: service, feedSession: session), service, center, fixture, podcast)
   }
 
-  private func load(_ networking: NetworkingService, url: URL, podcast: Podcast, guid: String, timestamp: TimeInterval) {
-    let date = ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: timestamp))
+  private func load(_ networking: NetworkingService, url: URL, podcast: Podcast, guid: String, timestamp: TimeInterval = 0, publicationDate: String? = nil) {
+    let date = publicationDate ?? ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: timestamp))
     let xml = "<rss><channel><item><title>Stub \(guid)</title><guid>\(guid)</guid><pubDate>\(date)</pubDate></item></channel></rss>"
     StubAlertFeedProtocol.responses = [.success(Data(xml.utf8))]
     let loaded = expectation(description: "Feed \(guid)")

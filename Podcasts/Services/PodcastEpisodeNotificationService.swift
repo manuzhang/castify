@@ -48,6 +48,7 @@ final class PodcastEpisodeNotificationService {
     fileprivate let feed: String
     fileprivate let generation: UUID
     fileprivate let sequence: Int
+    fileprivate let startedAt: Date
   }
 
   private struct Preference: Codable {
@@ -166,18 +167,24 @@ final class PodcastEpisodeNotificationService {
     save()
   }
 
-  func beginRefresh(feedURL: String) -> Refresh? {
+  func beginRefresh(feedURL: String, podcast: Podcast? = nil) -> Refresh? {
     globalPreferenceDidChange()
-    let feed = Self.feedKey(feedURL)
+    let feed: String
+    if let podcast = podcast {
+      guard let subscription = subscription(matching: podcast) else { return nil }
+      feed = Self.feedKey(subscription.feedUrl)
+    } else {
+      feed = Self.feedKey(feedURL)
+    }
     guard isSubscribed(feed), let preference = store.preferences[feed], preference.enabled else { return nil }
     pruneDeliveredIdentifiers(feed: feed, preference: preference)
     sequence += 1
     latestRefresh[feed] = sequence
-    return Refresh(feed: feed, generation: preference.generation, sequence: sequence)
+    return Refresh(feed: feed, generation: preference.generation, sequence: sequence, startedAt: now())
   }
 
   /// Failed refreshes do not call this method, so cannot clear a baseline.
-  func completeRefresh(_ refresh: Refresh?, episodes: [Episode]) {
+  func completeRefresh(_ refresh: Refresh?, episodes: [Episode], responseDate: Date? = nil, responseAge: TimeInterval = 0) {
     guard let refresh = refresh else { return }
     globalPreferenceDidChange()
     guard isCurrent(refresh), var preference = store.preferences[refresh.feed] else { return }
@@ -200,7 +207,11 @@ final class PodcastEpisodeNotificationService {
     recent.append(contentsOf: preference.seen.filter { !snapshot.contains($0) })
     preference.seen = Array(recent.prefix(Self.retainedIdentityLimit))
     preference.hasBaseline = true
-    preference.cutoff = max(preference.cutoff, timestamp)
+    // Completion time includes transport/parsing delays that the snapshot cannot
+    // cover. Cache age/date can only move the boundary earlier, never forward.
+    let age = responseAge.isFinite && responseAge > 0 ? responseAge : 0
+    let boundary = min(refresh.startedAt.addingTimeInterval(-age), responseDate ?? refresh.startedAt)
+    preference.cutoff = max(preference.cutoff, boundary)
     store.preferences[refresh.feed] = preference
     // Persist discovery before any asynchronous API call. Denial, errors or a
     // process exit must not replay these episodes on a later refresh.

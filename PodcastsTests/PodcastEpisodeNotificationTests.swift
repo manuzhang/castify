@@ -335,6 +335,78 @@ final class PodcastEpisodeNotificationTests: XCTestCase {
     XCTAssertEqual(defaults.data(forKey: UserDefaults.podcastNotificationPreferencesKey), cleaned)
   }
 
+  func testDelayedBaselineKeepsEpisodesPublishedDuringFetchEligible() {
+    enable()
+    let first = service.beginRefresh(feedURL: podcast.feedUrl)
+    fixture.time = Date(timeIntervalSince1970: 120)
+    service.completeRefresh(first, episodes: [episode("old", at: 50)])
+    XCTAssertTrue(center.requests.isEmpty)
+    fixture.time = Date(timeIntervalSince1970: 140)
+    refresh([episode("old", at: 50), episode("during-fetch", at: 110)])
+    XCTAssertEqual(center.requests.count, 1)
+    XCTAssertEqual(center.requests.first?.content.body, "Episode during-fetch")
+  }
+
+  func testLaterDelayedSnapshotPreservesUncoveredIntervalAfterRestart() {
+    baseline()
+    fixture.time = Date(timeIntervalSince1970: 120)
+    let delayed = service.beginRefresh(feedURL: podcast.feedUrl)
+    fixture.time = Date(timeIntervalSince1970: 140)
+    service.completeRefresh(delayed, episodes: [episode("old", at: 50)])
+    service = makeService()
+    fixture.time = Date(timeIntervalSince1970: 160)
+    refresh([episode("inserted-history", at: 80), episode("during-fetch", at: 130)])
+    XCTAssertEqual(center.requests.count, 1)
+    XCTAssertEqual(center.requests.first?.content.body, "Episode during-fetch")
+  }
+
+  func testCachedSnapshotDateKeepsUncoveredEpisodesEligible() {
+    baseline()
+    fixture.time = Date(timeIntervalSince1970: 140)
+    let cached = service.beginRefresh(feedURL: podcast.feedUrl)
+    service.completeRefresh(cached, episodes: [episode("old", at: 50)], responseDate: Date(timeIntervalSince1970: 110))
+    fixture.time = Date(timeIntervalSince1970: 160)
+    refresh([episode("after-cache", at: 130)])
+    XCTAssertEqual(center.requests.first?.content.body, "Episode after-cache")
+  }
+
+  func testCacheAgeWithoutDateKeepsUncoveredEpisodesEligible() {
+    baseline()
+    fixture.time = Date(timeIntervalSince1970: 140)
+    let cached = service.beginRefresh(feedURL: podcast.feedUrl)
+    service.completeRefresh(cached, episodes: [episode("old", at: 50)], responseAge: 30)
+    fixture.time = Date(timeIntervalSince1970: 160)
+    refresh([episode("after-cache", at: 130)])
+    XCTAssertEqual(center.requests.first?.content.body, "Episode after-cache")
+  }
+
+  func testChangedBrowseRefreshUsesSavedPreferenceAndInvalidatesOnDisable() {
+    let browse = makePodcast("https://example.test/changed-feed")
+    enable()
+    service.completeRefresh(service.beginRefresh(feedURL: browse.feedUrl, podcast: browse), episodes: [episode("old", at: 50)])
+    fixture.time = Date(timeIntervalSince1970: 120)
+    service.completeRefresh(service.beginRefresh(feedURL: browse.feedUrl, podcast: browse), episodes: [episode("new", at: 110)])
+    XCTAssertEqual(center.requests.count, 1)
+    XCTAssertEqual(center.requests.first?.content.userInfo["feedURL"] as? String, podcast.feedUrl)
+    fixture.time = Date(timeIntervalSince1970: 140)
+    let pending = service.beginRefresh(feedURL: browse.feedUrl, podcast: browse)
+    service.setEnabled(false, for: browse)
+    service.completeRefresh(pending, episodes: [episode("disabled", at: 130)])
+    XCTAssertEqual(center.requests.count, 1)
+    XCTAssertTrue(center.pending.isEmpty)
+    fixture.podcasts = []
+    XCTAssertNil(service.beginRefresh(feedURL: browse.feedUrl, podcast: browse))
+  }
+
+  func testRefreshContextHandlesHTTPSUpgradeAndRejectsUnrelatedZeroID() {
+    let saved = makePodcast("http://example.test/feed")
+    fixture.podcasts = [saved]
+    service.setEnabled(true, for: saved)
+    XCTAssertNotNil(service.beginRefresh(feedURL: "https://example.test/feed", podcast: saved))
+    let unrelated = makePodcast("https://example.test/other", trackId: 0)
+    XCTAssertNil(service.beginRefresh(feedURL: unrelated.feedUrl, podcast: unrelated))
+  }
+
   func testNewestStartedRefreshWinsOverOutOfOrderResponses() {
     baseline()
     let older = service.beginRefresh(feedURL: podcast.feedUrl)
@@ -808,6 +880,22 @@ final class PodcastNotificationIdentityTests: XCTestCase {
     }
   }
 
+  func testRFC822TwoDigitYearsUseFixedCenturyRules() throws {
+    for (shortYear, fullYear) in [("00", "2000"), ("26", "2026"), ("49", "2049"), ("50", "1950"), ("99", "1999")] {
+      let expected = try XCTUnwrap(ISO8601DateFormatter().date(from: "\(fullYear)-10-02T08:00:00Z"))
+      for date in ["2 Oct \(shortYear) 08:00 +0000", "02 Oct \(shortYear) 10:00:00 +0200"] {
+        let item = try XCTUnwrap(parse("<title>Valid</title><pubDate>\(date)</pubDate>").episodes.first)
+        XCTAssertEqual(item.notificationPublicationDate, expected, date)
+      }
+    }
+    let expected = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-02T08:00:00Z"))
+    for date in ["Fri, 2 Oct 26 08:00 GMT", "Fri, 02 Oct 26 08:00:00 +0000", "2 Oct 2026 08:00 +0000", "2026-10-02T08:00:00Z"] {
+      XCTAssertEqual(try parse("<title>Valid</title><pubDate>\(date)</pubDate>").episodes.first?.notificationPublicationDate, expected, date)
+    }
+    let distant = try XCTUnwrap(ISO8601DateFormatter().date(from: "2050-10-02T08:00:00Z"))
+    XCTAssertEqual(try parse("<title>Valid</title><pubDate>2 Oct 2050 08:00 +0000</pubDate>").episodes.first?.notificationPublicationDate, distant)
+  }
+
   func testParserRejectsNonRSSDocumentsAndAllowsEmptyChannels() throws {
     let parser = PodcastFeedParser()
     for xml in ["<error/>", "<html><body>Unavailable</body></html>", "<rss/>",
@@ -955,6 +1043,8 @@ final class PodcastNotificationUITests: XCTestCase {
 
 private final class StubAlertFeedProtocol: URLProtocol {
   static var responses = [Result<Data, Error>]()
+  static var headers = [String: String]()
+  static var requests = [URLRequest]()
   private static let lock = NSLock()
 
   override class func canInit(with request: URLRequest) -> Bool { request.url?.host == "feed-alert-tests.invalid" }
@@ -963,10 +1053,12 @@ private final class StubAlertFeedProtocol: URLProtocol {
   override func startLoading() {
     Self.lock.lock()
     let result = Self.responses.removeFirst()
+    let headers = Self.headers
+    Self.requests.append(request)
     Self.lock.unlock()
     switch result {
     case .success(let data):
-      client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, cacheStoragePolicy: .notAllowed)
+      client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: headers)!, cacheStoragePolicy: .notAllowed)
       client?.urlProtocol(self, didLoad: data)
       client?.urlProtocolDidFinishLoading(self)
     case .failure(let error):
@@ -978,6 +1070,76 @@ private final class StubAlertFeedProtocol: URLProtocol {
 }
 
 final class PodcastNotificationRefreshTests: XCTestCase {
+  override func tearDown() {
+    StubAlertFeedProtocol.responses = []
+    StubAlertFeedProtocol.headers = [:]
+    StubAlertFeedProtocol.requests = []
+    super.tearDown()
+  }
+
+  func testChangedBrowseURLNetworkRefreshEstablishesSavedBaselineAndAlerts() throws {
+    try withNetworking { networking, _, center, fixture, saved in
+      let browse = Podcast(trackId: saved.trackId, trackName: saved.trackName, trackCount: 0,
+        artistName: saved.artistName, artworkUrl100: "", feedUrl: "https://feed-alert-tests.invalid/changed")
+      let url = try XCTUnwrap(URL(string: browse.feedUrl))
+      load(networking, url: url, podcast: browse, guid: "baseline", timestamp: 50)
+      XCTAssertTrue(center.requests.isEmpty)
+      fixture.time = Date(timeIntervalSince1970: 120)
+      load(networking, url: url, podcast: browse, guid: "new", timestamp: 110)
+      XCTAssertEqual(center.requests.count, 1)
+      XCTAssertEqual(center.requests.first?.content.userInfo["feedURL"] as? String, saved.feedUrl)
+      XCTAssertEqual(StubAlertFeedProtocol.requests.map { $0.url }, [url, url])
+      XCTAssertTrue(StubAlertFeedProtocol.requests.allSatisfy { $0.cachePolicy == .reloadIgnoringLocalCacheData })
+    }
+  }
+
+  func testCachedHTTPResponseDoesNotSkipEpisodesMissingFromSnapshot() throws {
+    try withNetworking { networking, _, center, fixture, podcast in
+      let url = try XCTUnwrap(URL(string: podcast.feedUrl))
+      load(networking, url: url, podcast: podcast, guid: "baseline", timestamp: 50)
+      fixture.time = Date(timeIntervalSince1970: 140)
+      StubAlertFeedProtocol.headers = ["Date": "Thu, 01 Jan 1970 00:01:50 GMT", "Age": "30"]
+      load(networking, url: url, podcast: podcast, guid: "baseline", timestamp: 50)
+      XCTAssertTrue(center.requests.isEmpty)
+      fixture.time = Date(timeIntervalSince1970: 160)
+      StubAlertFeedProtocol.headers = [:]
+      load(networking, url: url, podcast: podcast, guid: "after-cache", timestamp: 130)
+      XCTAssertEqual(center.requests.count, 1)
+      XCTAssertEqual(center.requests.first?.content.body, "Stub after-cache")
+    }
+  }
+
+  private func withNetworking(_ body: (NetworkingService, PodcastEpisodeNotificationService, RecordingAlertCenter, AlertFixtures, Podcast) throws -> Void) throws {
+    let suite = "Castify.NotificationRefreshTests." + UUID().uuidString
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    defaults.set(true, forKey: UserDefaults.notificationsEnabledKey)
+    let podcast = Podcast(trackId: 123, trackName: "Stub Podcast", trackCount: 0, artistName: "Test", artworkUrl100: "", feedUrl: "https://feed-alert-tests.invalid/rss")
+    let fixture = AlertFixtures()
+    fixture.podcasts = [podcast]
+    let center = RecordingAlertCenter()
+    let service = PodcastEpisodeNotificationService(userDefaults: defaults, center: center,
+      subscriptions: { fixture.podcasts }, now: { fixture.time }, localization: LocalizationService(userDefaults: defaults))
+    service.setEnabled(true, for: podcast)
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.protocolClasses = [StubAlertFeedProtocol.self]
+    let session = URLSession(configuration: configuration)
+    defer { session.invalidateAndCancel() }
+    try body(NetworkingService(notificationService: service, feedSession: session), service, center, fixture, podcast)
+  }
+
+  private func load(_ networking: NetworkingService, url: URL, podcast: Podcast, guid: String, timestamp: TimeInterval) {
+    let date = ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: timestamp))
+    let xml = "<rss><channel><item><title>Stub \(guid)</title><guid>\(guid)</guid><pubDate>\(date)</pubDate></item></channel></rss>"
+    StubAlertFeedProtocol.responses = [.success(Data(xml.utf8))]
+    let loaded = expectation(description: "Feed \(guid)")
+    networking.fetchPodcastFeed(url: url, podcast: podcast) { result in
+      if case .failure(let error) = result { XCTFail("Unexpected feed failure: \(error)") }
+      loaded.fulfill()
+    }
+    wait(for: [loaded], timeout: 5)
+  }
+
   func testSuccessfulNetworkRefreshParsesIdentityAndSchedulesOnlyAfterBaseline() throws {
     try verifyRefreshes(firstFails: false)
   }

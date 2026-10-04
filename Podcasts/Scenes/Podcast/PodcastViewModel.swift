@@ -43,7 +43,7 @@ extension PodcastViewModel {
 
     isLoading = true
     errorMessage = nil
-    networkingService.fetchPodcastFeed(url: url) { result in
+    networkingService.fetchPodcastFeed(url: url, podcast: podcast) { result in
       self.isLoading = false
 
       switch result {

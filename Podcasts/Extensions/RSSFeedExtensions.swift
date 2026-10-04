@@ -109,6 +109,15 @@ final class PodcastFeedParser: NSObject {
   }
 
   private func date(from value: String) -> Date? {
+    var value = value
+    // RFC 5322 section 4.3: 00...49 means 2000...2049, 50...99 means
+    // 1950...1999. Expand before yyyy can accept a two-digit year literally.
+    let pattern = "^(?:[A-Za-z]{3},\\s*)?\\d{1,2}\\s+[A-Za-z]{3}\\s+(\\d{2})(?=\\s+\\d{2}:)"
+    if let expression = try? NSRegularExpression(pattern: pattern),
+       let match = expression.firstMatch(in: value, range: NSRange(value.startIndex..., in: value)),
+       let range = Range(match.range(at: 1), in: value), let year = Int(value[range]) {
+      value.replaceSubrange(range, with: String(year + (year < 50 ? 2000 : 1900)))
+    }
     let formats = [
       "E, d MMM yyyy HH:mm:ss Z",
       "E, dd MMM yyyy HH:mm:ss Z",

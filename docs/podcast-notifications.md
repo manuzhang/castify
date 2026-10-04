@@ -17,13 +17,17 @@ notification delegate and rechecks the current global/subscription preference.
 - An opt-in establishes its baseline from the next successful network refresh;
   cached screen contents are not used. That first snapshot is never announced.
 - Subsequent snapshots identify episodes by RSS GUID, then enclosure URL, then
-  reliably parsed publication date/title/author. RFC 822 dates may omit seconds;
+  reliably parsed publication date/title/author. RFC 822 dates may omit seconds
+  or use two-digit years (00–49 map to 2000–2049; 50–99 map to 1950–1999);
   RSS 1.0 Dublin Core dates are resolved by namespace and parsed as ISO timestamps
   or UTC calendar dates. Identities are SHA-256 hashes
   scoped to a normalized subscription feed URL. Added optional episode fields
   remain compatible with old cached JSON; playback equality is unchanged.
 - An episode must be unseen and have a valid publication date later than the
-  previous successful snapshot and no later than the current time. Missing/invalid
+  previous successful snapshot boundary and no later than the current time.
+  The boundary uses the fetch start time, conservatively reduced by HTTP cache
+  age or response date. Transport/parsing delays do not consume an interval absent
+  from the snapshot. Feed requests bypass the local URL cache. Missing/invalid
   dates, historical insertions, future-dated items and unidentified items are not
   announced. RSS display-date fallback behavior is retained. Feeds that change all
   identities or omit reliable dates may miss alerts; publisher timestamps are not
@@ -43,7 +47,9 @@ notification delegate and rechecks the current global/subscription preference.
 
 Membership uses the library's existing matching rules: a shared nonzero track ID,
 then a normalized feed URL. A Browse result with an updated URL controls the saved
-subscription's preference; library refreshes continue using that saved feed URL.
+subscription's preference. Detail, library and auto-download refreshes carry the
+podcast identity and reconcile discoveries against that saved preference even
+when Browse uses a changed URL or the request upgrades HTTP to HTTPS.
 
 Seen hashes retain at most 2,048 identities per active feed, prioritizing the current
 snapshot's newest publication dates and then prior recent identities. Oversized
@@ -229,3 +235,24 @@ XcodeGen generation without drift, the generic simulator build, and **75 tests,
 `/tmp/castify-podcast-notifications-bounded-history-test-summary.json`. The Mac
 connection dropped during the run; after recovery, the existing completed bundle
 was verified without launching a duplicate runner.
+
+
+## Snapshot/date/subscription review validation — 2026-10-04
+
+Refresh cutoffs use the fetch start time and conservatively account for HTTP
+`Date`/`Age` metadata, preserving releases absent from delayed or cached snapshots.
+Feed requests bypass the local cache. RFC two-digit years use the fixed
+1950–2049 interpretation described in RFC 5322 section 4.3, preserving four-digit
+and ISO timestamps. Detail, library and auto-download fetches pass podcast identity
+so changed Browse URLs and HTTP-to-HTTPS upgrades share the saved subscription's
+preference, generation, discovery history and cancellation guards.
+
+Nine added regressions cover delayed baseline/subsequent refreshes, persistence
+across restart, cache date and age, changed Browse delivery and disable/unsubscribe
+guards, HTTPS upgrades, unrelated zero-ID podcasts, date-century boundaries, and
+stubbed network cache/identity behavior.
+
+XcodeGen regeneration produced no drift; the generic iOS Simulator build passed.
+The full serial runner passed **84 tests, 0 failures** on iPhone Air, iOS 26.4.1.
+Bundle/log: `build/test-results/run.Q5n92P/Tests.xcresult` and `xcodebuild.log`.
+The physical-device/OS presentation and UI limits above still apply.

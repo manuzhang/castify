@@ -19,7 +19,10 @@ notification delegate and rechecks the current global/subscription preference.
 - Subsequent snapshots identify episodes by RSS GUID, then enclosure URL, then
   reliably parsed publication date/title/author. RFC 822 dates may omit seconds
   or use two-digit years (00–49 map to 2000–2049; 50–99 map to 1950–1999).
-  RFC named zones UT/GMT and EST/EDT/CST/CDT/MST/MDT/PST/PDT use their fixed offsets;
+  RFC named zones UT/GMT and EST/EDT/CST/CDT/MST/MDT/PST/PDT use their fixed offsets.
+  Single-letter zones use the legacy RFC 822 section 5.2 semantics referenced by
+  RSS: A–I/K–M are -0100 through -1200, N–Y are +0100 through +1200, Z is UTC;
+  J remains invalid. Numeric offsets are preferable for unambiguous timestamps;
   RSS 1.0 Dublin Core dates are resolved by namespace and parsed as ISO timestamps
   or UTC calendar dates. Identities are SHA-256 hashes
   scoped to a normalized subscription feed URL. Added optional episode fields
@@ -267,3 +270,17 @@ a stub-network regression verifies a named-zone episode becomes an alert candida
 Drift-free XcodeGen regeneration and the generic simulator build passed. The full
 runner passed **86 tests, 0 failures**. Bundle/log:
 `build/test-results/run.M1jwCY/Tests.xcresult` and `xcodebuild.log`.
+
+## Military-zone follow-up validation — 2026-10-05
+
+Single-letter RSS zones now follow the explicit legacy interpretation in
+[RFC 822 section 5.2](https://www.rfc-editor.org/rfc/rfc822.html#section-5.2).
+The parser supports all 25 defined letters, skips J, and accepts lowercase input.
+Because modern military usage and later mail guidance differ, numeric offsets
+remain preferable; this parser's legacy RSS policy is explicit above.
+
+Added exhaustive parser cases cover both year formats, optional seconds, positive/
+negative offsets, UTC, date rollover and invalid J. A stub-network regression
+verifies a military-zone episode becomes an alert candidate. Drift-free generation,
+the generic simulator build, and the full runner passed: **88 tests, 0 failures**.
+Bundle/log: `build/test-results/run.t8JuvU/Tests.xcresult` and `xcodebuild.log`.

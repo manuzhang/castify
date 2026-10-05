@@ -909,6 +909,22 @@ final class PodcastNotificationIdentityTests: XCTestCase {
     XCTAssertNil(try parse("<title>Unknown zone</title><pubDate>2 Oct 26 08:00 UNKNOWN</pubDate>").episodes.first?.notificationPublicationDate)
   }
 
+  func testRFC822MilitaryZonesUseLegacyRSSOffsetsAndRejectJ() throws {
+    let utc = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-02T08:00:00Z"))
+    let zones = [("A", 1), ("B", 2), ("C", 3), ("D", 4), ("E", 5), ("F", 6),
+                 ("G", 7), ("H", 8), ("I", 9), ("K", 10), ("L", 11), ("M", 12),
+                 ("N", -1), ("O", -2), ("P", -3), ("Q", -4), ("R", -5), ("S", -6),
+                 ("T", -7), ("U", -8), ("V", -9), ("W", -10), ("X", -11), ("Y", -12), ("Z", 0)]
+    for (zone, hours) in zones {
+      for date in ["Fri, 02 Oct 2026 08:00:00 \(zone)", "2 Oct 26 08:00 \(zone.lowercased())"] {
+        let item = try XCTUnwrap(parse("<title>Military zone</title><pubDate>\(date)</pubDate>").episodes.first)
+        XCTAssertEqual(item.notificationPublicationDate, utc.addingTimeInterval(Double(hours) * 3600), date)
+        XCTAssertEqual(item.publicationDateIsKnown, true)
+      }
+    }
+    XCTAssertNil(try parse("<title>Unused zone</title><pubDate>2 Oct 26 08:00 J</pubDate>").episodes.first?.notificationPublicationDate)
+  }
+
   func testParserRejectsNonRSSDocumentsAndAllowsEmptyChannels() throws {
     let parser = PodcastFeedParser()
     for xml in ["<error/>", "<html><body>Unavailable</body></html>", "<rss/>",
@@ -1130,6 +1146,17 @@ final class PodcastNotificationRefreshTests: XCTestCase {
       load(networking, url: url, podcast: podcast, guid: "named-zone", publicationDate: "Fri, 2 Oct 26 08:00 EST")
       XCTAssertEqual(center.requests.count, 1)
       XCTAssertEqual(center.requests.first?.content.body, "Stub named-zone")
+    }
+  }
+
+  func testMilitaryZoneNetworkRefreshDiscoversAnEligibleEpisode() throws {
+    try withNetworking { networking, _, center, fixture, podcast in
+      let url = try XCTUnwrap(URL(string: podcast.feedUrl))
+      load(networking, url: url, podcast: podcast, guid: "baseline", timestamp: 50)
+      fixture.time = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-02T09:01:00Z"))
+      load(networking, url: url, podcast: podcast, guid: "military-zone", publicationDate: "Fri, 2 Oct 26 08:00 A")
+      XCTAssertEqual(center.requests.count, 1)
+      XCTAssertEqual(center.requests.first?.content.body, "Stub military-zone")
     }
   }
 

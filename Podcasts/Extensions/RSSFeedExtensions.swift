@@ -120,9 +120,18 @@ final class PodcastFeedParser: NSObject {
     }
     // RFC zone abbreviations have fixed offsets, even when the publication
     // date falls in daylight-saving season. Avoid locale-dependent zone guesses.
-    let zones = ["UT": "+0000", "GMT": "+0000", "EST": "-0500", "EDT": "-0400",
+    var zones = ["UT": "+0000", "GMT": "+0000", "EST": "-0500", "EDT": "-0400",
                  "CST": "-0600", "CDT": "-0500", "MST": "-0700", "MDT": "-0600",
                  "PST": "-0800", "PDT": "-0700"]
+    // RSS references RFC 822 section 5.2: A...M are earlier than UT,
+    // N...Y are later; J is unused. Keep that legacy interpretation explicit.
+    for (index, letter) in "ABCDEFGHIKLM".enumerated() {
+      zones[String(letter)] = String(format: "-%02d00", index + 1)
+    }
+    for (index, letter) in "NOPQRSTUVWXY".enumerated() {
+      zones[String(letter)] = String(format: "+%02d00", index + 1)
+    }
+    zones["Z"] = "+0000"
     if let zone = value.split(whereSeparator: { $0.isWhitespace }).last,
        let offset = zones[String(zone).uppercased()],
        let range = value.range(of: String(zone), options: .backwards) {

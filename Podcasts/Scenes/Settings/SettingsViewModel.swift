@@ -289,6 +289,7 @@ final class SettingsViewModel: ObservableObject {
   private func saveNotificationsEnabled(_ enabled: Bool) {
     notificationsEnabled = enabled
     userDefaults.set(enabled, forKey: UserDefaults.notificationsEnabledKey)
+    PodcastEpisodeNotificationService.shared.globalPreferenceDidChange()
   }
 
   private func refreshListeningStats() {

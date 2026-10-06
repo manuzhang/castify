@@ -48,7 +48,7 @@ final class PlayerSpeedTests: XCTestCase {
 
   func testSpeedChangesApplyWhilePlayingAndPauseResumeRetainSelection() throws {
     let fixture = try makeFixture()
-    defer { try? FileManager.default.removeItem(at: fixture.url) }
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
     let avPlayer = AVPlayer()
     let player = Player(avPlayer: avPlayer, userDefaults: defaults)
     defer { player.pause(); avPlayer.replaceCurrentItem(with: nil) }
@@ -75,7 +75,7 @@ final class PlayerSpeedTests: XCTestCase {
 
   func testPausedEpisodeNavigationAndSeekDoNotStartPlayback() throws {
     let fixture = try makeFixture()
-    defer { try? FileManager.default.removeItem(at: fixture.url) }
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
     let avPlayer = AVPlayer()
     let player = Player(avPlayer: avPlayer, userDefaults: defaults)
     defer { player.pause(); avPlayer.replaceCurrentItem(with: nil) }
@@ -109,7 +109,7 @@ final class PlayerSpeedTests: XCTestCase {
 
   func testPlayingNavigationAndExplicitEpisodeSelectionRetainSpeed() throws {
     let fixture = try makeFixture()
-    defer { try? FileManager.default.removeItem(at: fixture.url) }
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
     let avPlayer = AVPlayer()
     let player = Player(avPlayer: avPlayer, userDefaults: defaults)
     defer { player.pause(); avPlayer.replaceCurrentItem(with: nil) }
@@ -134,7 +134,7 @@ final class PlayerSpeedTests: XCTestCase {
 
   func testNowPlayingReportsSelectedSpeedAndZeroWhilePaused() throws {
     let fixture = try makeFixture()
-    defer { try? FileManager.default.removeItem(at: fixture.url) }
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
     let avPlayer = AVPlayer()
     let center = MPNowPlayingInfoCenter.default()
     let player = Player(avPlayer: avPlayer, systemPlayer: center, userDefaults: defaults)
@@ -159,7 +159,7 @@ final class PlayerSpeedTests: XCTestCase {
     let service = PodcastsService()
     for speed in [PlaybackSpeed.double, .threeQuarters] {
       let fixture = try makeFixture()
-      defer { try? FileManager.default.removeItem(at: fixture.url) }
+      defer { try? FileManager.default.removeItem(at: fixture.directory) }
       let avPlayer = AVPlayer()
       let player = Player(avPlayer: avPlayer, podcastsService: service, userDefaults: defaults)
       defer { player.pause(); avPlayer.replaceCurrentItem(with: nil) }
@@ -184,7 +184,7 @@ final class PlayerSpeedTests: XCTestCase {
     defer { UserDefaults.standard.set(savedStats, forKey: UserDefaults.listeningStatsKey) }
     let service = PodcastsService()
     let fixture = try makeFixture()
-    defer { try? FileManager.default.removeItem(at: fixture.url) }
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
     let avPlayer = AVPlayer()
     let player = Player(avPlayer: avPlayer, podcastsService: service, userDefaults: defaults)
     defer { player.pause(); avPlayer.replaceCurrentItem(with: nil) }
@@ -197,9 +197,14 @@ final class PlayerSpeedTests: XCTestCase {
     player.setPlaybackSpeed(.threeQuarters)
     let speedBoundary = player.elapsedTime
     XCTAssertEqual(service.listeningStats.totalListeningTime - initial, speedBoundary / 2, accuracy: 0.05)
-    waitUntilElapsed(player, reaches: speedBoundary + 2)
+    // Cross the production resume threshold so shared fixture identities cannot
+    // accidentally pass by staying below the point at which a position is saved.
+    waitUntilElapsed(player, reaches: max(speedBoundary + 2, 6))
+    XCTAssertGreaterThan(service.resumePosition(for: fixture.episodes[0]), 5)
+    XCTAssertEqual(service.resumePosition(for: fixture.episodes[1]), 0)
     let episodeBoundary = avPlayer.currentTime().seconds
     player.next()
+    XCTAssertEqual(player.current, fixture.episodes[1])
     let firstListening = speedBoundary / 2 + (episodeBoundary - speedBoundary) / 0.75
     XCTAssertEqual(service.listeningStats.totalListeningTime - initial, firstListening, accuracy: 0.1)
     waitUntilReady(avPlayer)
@@ -211,7 +216,7 @@ final class PlayerSpeedTests: XCTestCase {
 
   func testPlayerControlRendersIdlePlayingAndPausedInEnglishAndChinese() throws {
     let fixture = try makeFixture()
-    defer { try? FileManager.default.removeItem(at: fixture.url) }
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
     let avPlayer = AVPlayer()
     let player = Player(avPlayer: avPlayer, userDefaults: defaults)
     defer { player.pause(); avPlayer.replaceCurrentItem(with: nil) }
@@ -237,20 +242,31 @@ final class PlayerSpeedTests: XCTestCase {
     }
   }
 
-  private func makeFixture() throws -> (url: URL, episodes: [Episode]) {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".caf")
-    let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1))
-    let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 44100 * 60))
-    buffer.frameLength = buffer.frameCapacity
-    try XCTUnwrap(buffer.floatChannelData)[0].initialize(repeating: 0, count: Int(buffer.frameLength))
+  private func makeFixture() throws -> (directory: URL, episodes: [Episode]) {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     do {
-      let file = try AVAudioFile(forWriting: url, settings: format.settings)
-      try file.write(from: buffer)
+      let firstURL = directory.appendingPathComponent("first.caf")
+      let secondURL = directory.appendingPathComponent("second.caf")
+      let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1))
+      let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 44100 * 60))
+      buffer.frameLength = buffer.frameCapacity
+      try XCTUnwrap(buffer.floatChannelData)[0].initialize(repeating: 0, count: Int(buffer.frameLength))
+      do {
+        let file = try AVAudioFile(forWriting: firstURL, settings: format.settings)
+        try file.write(from: buffer)
+      }
+      try FileManager.default.copyItem(at: firstURL, to: secondURL)
+      // Playback state is keyed by media URL, so distinct test episodes need
+      // distinct files even when their synthetic audio content is identical.
+      return (directory, [
+        Episode(title: "Playback speed regression first episode", author: "Castify Test", streamUrl: firstURL.absoluteString, duration: 60),
+        Episode(title: "Playback speed regression second episode", author: "Castify Test", streamUrl: secondURL.absoluteString, duration: 60)
+      ])
+    } catch {
+      try? FileManager.default.removeItem(at: directory)
+      throw error
     }
-    return (url, [
-      Episode(title: "Playback speed regression first episode", author: "Castify Test", streamUrl: url.absoluteString, duration: 60),
-      Episode(title: "Playback speed regression second episode", author: "Castify Test", streamUrl: url.absoluteString, duration: 60)
-    ])
   }
 
   private func waitUntilReady(_ player: AVPlayer) {

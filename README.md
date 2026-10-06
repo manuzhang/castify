@@ -44,6 +44,13 @@ reports the selected speed and a zero current rate while paused.
 Listening statistics count time spent listening, normalized for playback speed,
 including intervals across speed changes, pauses, and episode switches.
 
+## New Episode Alerts
+
+Each subscribed podcast has an opt-in alert toggle. Alerts require the global
+Notifications setting and iOS authorization, and are checked when RSS feeds
+refresh. The first refresh establishes a baseline without historical alerts;
+closed-app discovery is not guaranteed. See [notification behavior and testing](docs/podcast-notifications.md).
+
 ## Tests
 
 The shared `Podcasts` scheme runs `PodcastsTests`, covering solid-color artwork

@@ -3,6 +3,8 @@ import Foundation
 final class NetworkingService: NSObject {
 
   fileprivate var podcastsService: PodcastsService?
+  private let notificationService: PodcastEpisodeNotificationService
+  private let feedSession: URLSession
   private lazy var downloadSession: URLSession = {
     let configuration = URLSessionConfiguration.default
     configuration.waitsForConnectivity = true
@@ -19,8 +21,12 @@ final class NetworkingService: NSObject {
   private var downloadedFileURLs = [Int: URL]()
   private let downloadStateQueue = DispatchQueue(label: "com.castify.download-state")
 
-  init(podcastsService: PodcastsService = .init()) {
+  init(podcastsService: PodcastsService = .init(),
+       notificationService: PodcastEpisodeNotificationService = .shared,
+       feedSession: URLSession = .shared) {
     self.podcastsService = podcastsService
+    self.notificationService = notificationService
+    self.feedSession = feedSession
     super.init()
   }
 
@@ -195,8 +201,15 @@ extension NetworkingService {
     }.resume()
   }
 
-  func fetchPodcastFeed(url: URL, completionHandler: @escaping (Result<ParsedPodcastFeed, Error>) -> Void) {
-    URLSession.shared.dataTask(with: url) { data, response, error in
+  func fetchPodcastFeed(url: URL, podcast: Podcast? = nil, completionHandler: @escaping (Result<ParsedPodcastFeed, Error>) -> Void) {
+    guard Thread.isMainThread else {
+      DispatchQueue.main.async { self.fetchPodcastFeed(url: url, podcast: podcast, completionHandler: completionHandler) }
+      return
+    }
+    let notifications = notificationService
+    let refresh = notifications.beginRefresh(feedURL: url.absoluteString, podcast: podcast)
+    let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
+    feedSession.dataTask(with: request) { data, response, error in
       if let error = error {
         DispatchQueue.main.async {
           completionHandler(.failure(error))
@@ -215,7 +228,14 @@ extension NetworkingService {
 
       do {
         let feed = try PodcastFeedParser().parse(data: data)
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss z"
+        let responseDate = httpResponse.value(forHTTPHeaderField: "Date").flatMap(formatter.date(from:))
+        let responseAge = httpResponse.value(forHTTPHeaderField: "Age").flatMap(TimeInterval.init) ?? 0
         DispatchQueue.main.async {
+          notifications.completeRefresh(refresh, episodes: feed.episodes, responseDate: responseDate, responseAge: responseAge)
           completionHandler(.success(feed))
         }
       } catch {
@@ -245,7 +265,7 @@ extension NetworkingService {
       return
     }
 
-    fetchPodcastFeed(url: url) { [weak self] result in
+    fetchPodcastFeed(url: url, podcast: podcast) { [weak self] result in
       guard let self = self else {
         completionHandler?(0)
         return

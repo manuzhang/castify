@@ -1,15 +1,26 @@
 import UIKit
+import UserNotifications
 
 @UIApplicationMain
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
 
   let appContainer: Container = Container()
   let autoGitHubSubscriptionSyncService = AutoGitHubSubscriptionSyncService.shared
 
   func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+    UNUserNotificationCenter.current().delegate = self
     CrashReportingService.start()
     autoGitHubSubscriptionSyncService.start()
     return true
+  }
+
+  func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              willPresent notification: UNNotification,
+                              withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+    DispatchQueue.main.async {
+      let allowed = PodcastEpisodeNotificationService.shared.shouldPresent(notification.request)
+      completionHandler(allowed ? [.alert, .sound] : [])
+    }
   }
 
   func applicationWillTerminate(_ application: UIApplication) {

@@ -35,6 +35,10 @@ struct PodcastView: View {
           .font(.headline)
         }
 
+        if viewModel.isSubscribed() {
+          PodcastNotificationSettingsView(viewModel: viewModel)
+        }
+
         if viewModel.isLoading {
           HStack {
             Spacer()
@@ -108,6 +112,28 @@ struct PodcastView: View {
       self.viewModel.unsubscribe()
     } else {
       self.viewModel.subscribe()
+    }
+  }
+}
+
+struct PodcastNotificationSettingsView: View {
+  @ObservedObject var viewModel: PodcastViewModel
+  @EnvironmentObject var localization: LocalizationService
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Toggle(isOn: Binding(get: { self.viewModel.episodeAlertsEnabled },
+                           set: { self.viewModel.setEpisodeAlertsEnabled($0) })) {
+        HStack {
+          Image(systemName: "bell")
+          Text(localization.text(.podcastEpisodeAlerts))
+        }
+      }
+      .accessibility(identifier: "podcast-episode-alerts")
+      Text(localization.text(.podcastEpisodeAlertsHelp))
+        .font(.footnote)
+        .foregroundColor(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
     }
   }
 }

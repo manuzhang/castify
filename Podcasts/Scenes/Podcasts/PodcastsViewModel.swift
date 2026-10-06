@@ -29,15 +29,17 @@ final class PodcastsViewModel: ObservableObject {
   }
 
   private func refreshUpNextEpisodesFromFeeds(_ podcasts: [Podcast]) {
-    let feedUrls = podcasts.compactMap { URL(string: $0.feedUrl.httpsUrlString) }
-    guard !feedUrls.isEmpty && !isRefreshingUpNextFeeds else {
+    let feeds = podcasts.compactMap { podcast in
+      URL(string: podcast.feedUrl.httpsUrlString).map { (podcast: podcast, url: $0) }
+    }
+    guard !feeds.isEmpty && !isRefreshingUpNextFeeds else {
       return
     }
 
     isRefreshingUpNextFeeds = true
-    var remainingFeeds = feedUrls.count
-    feedUrls.forEach { url in
-      networkingService.fetchPodcastFeed(url: url) { [weak self] result in
+    var remainingFeeds = feeds.count
+    feeds.forEach { feed in
+      networkingService.fetchPodcastFeed(url: feed.url, podcast: feed.podcast) { [weak self] result in
         guard let self = self else {
           return
         }

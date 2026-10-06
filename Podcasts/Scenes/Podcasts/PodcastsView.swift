@@ -33,6 +33,14 @@ struct PodcastsView: View {
           Spacer()
         } else {
           List {
+            Section(header: Text(localization.text(.library))) {
+              NavigationLink(destination: EpisodeLibraryView()) {
+                HStack {
+                  Image(systemName: "line.horizontal.3.decrease.circle")
+                  Text(localization.text(.allEpisodes))
+                }
+              }
+            }
             Section(header: Text(localization.text(.subscriptions))) {
               ForEach(podcastsViewModel.podcasts, id: \.self) { podcast in
                 NavigationLink(destination: PodcastView(podcast: podcast), label: {

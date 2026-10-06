@@ -122,6 +122,60 @@ final class PodcastsService {
 // MARK: - Methods
 extension PodcastsService {
 
+  // Keep feed ownership with cached metadata; titles and authors cannot identify a podcast.
+  func cachedEpisodes(for podcast: Podcast) -> [Episode] {
+    episodeLibrary()[Self.normalizedFeedUrl(podcast.feedUrl)] ?? []
+  }
+
+  // Decode shared state once for the whole library, rather than once per row.
+  func cachedEpisodeSnapshot(for podcasts: [Podcast]) -> [
+    (podcast: Podcast, episode: Episode, playbackState: EpisodePlaybackState?, isDownloaded: Bool)
+  ] {
+    let library = episodeLibrary()
+    let states = episodePlaybackStates()
+    let downloads = availableDownloadedEpisodes()
+    var snapshot = [(podcast: Podcast, episode: Episode, playbackState: EpisodePlaybackState?, isDownloaded: Bool)]()
+    for podcast in podcasts {
+      for episode in library[Self.normalizedFeedUrl(podcast.feedUrl)] ?? [] {
+        snapshot.append((podcast, episode, states[playbackStateKey(for: episode)], downloads.contains(episode)))
+      }
+    }
+    return snapshot
+  }
+
+  func cacheEpisodes(_ episodes: [Episode], for podcast: Podcast) {
+    guard containsPodcast(podcast) else { return }
+    var library = episodeLibrary()
+    let key = Self.normalizedFeedUrl(podcast.feedUrl)
+    // Feeds can drop older items. Keep associated downloads available offline.
+    let downloads = availableDownloadedEpisodes()
+    let retainedDownloads = (library[key] ?? []).filter { downloads.contains($0) }
+    var seen = Set<Episode>()
+    library[key] = (episodes + retainedDownloads).filter { seen.insert($0).inserted }
+    saveEpisodeLibrary(library)
+  }
+
+  private func episodeLibrary() -> [String: [Episode]] {
+    guard let data = UserDefaults.standard.data(forKey: UserDefaults.episodeLibraryKey),
+          let library = try? JSONDecoder().decode([String: [Episode]].self, from: data) else {
+      return [:]
+    }
+    return library
+  }
+
+  private func saveEpisodeLibrary(_ library: [String: [Episode]]) {
+    guard let data = try? JSONEncoder().encode(library) else { return }
+    UserDefaults.standard.set(data, forKey: UserDefaults.episodeLibraryKey)
+    NotificationCenter.default.post(name: .episodeLibraryDidChange, object: self)
+  }
+
+  private func availableDownloadedEpisodes() -> Set<Episode> {
+    Set(downloadedEpisodes.filter { episode in
+      guard let url = storedFileURL(for: episode) else { return false }
+      return FileManager.default.fileExists(atPath: url.path)
+    })
+  }
+
   static func normalizedFeedUrl(_ feedUrl: String) -> String {
     let trimmed = feedUrl.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -188,6 +242,9 @@ extension PodcastsService {
 
     if saveSubscribedPodcasts(filteredPodcasts, failureMessage: "Failed to delete podcast: " + podcast.trackName) {
       let removed = podcasts.filter { Self.matches($0, podcast) }
+      var library = episodeLibrary()
+      removed.forEach { library.removeValue(forKey: Self.normalizedFeedUrl($0.feedUrl)) }
+      saveEpisodeLibrary(library)
       let cancelAlerts = {
         removed.forEach { PodcastEpisodeNotificationService.shared.subscriptionRemoved($0) }
       }
@@ -734,7 +791,11 @@ extension PodcastsService {
 
   fileprivate func downloadedFileURL(for episode: Episode) -> URL? {
     let storedEpisode = downloadedEpisodes.first(where: { $0 == episode }) ?? episode
-    guard let fileUrl = storedEpisode.fileUrl else {
+    return storedFileURL(for: storedEpisode)
+  }
+
+  private func storedFileURL(for episode: Episode) -> URL? {
+    guard let fileUrl = episode.fileUrl else {
       return nil
     }
 

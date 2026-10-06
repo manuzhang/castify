@@ -235,6 +235,9 @@ extension NetworkingService {
         let responseDate = httpResponse.value(forHTTPHeaderField: "Date").flatMap(formatter.date(from:))
         let responseAge = httpResponse.value(forHTTPHeaderField: "Age").flatMap(TimeInterval.init) ?? 0
         DispatchQueue.main.async {
+          if let podcast = podcast {
+            self.podcastsService?.cacheEpisodes(feed.episodes, for: podcast)
+          }
           notifications.completeRefresh(refresh, episodes: feed.episodes, responseDate: responseDate, responseAge: responseAge)
           completionHandler(.success(feed))
         }

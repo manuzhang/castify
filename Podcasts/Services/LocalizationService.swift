@@ -119,6 +119,24 @@ enum AppText: String {
   case githubSyncInvalidURL
   case githubSyncInvalidResponse
   case noSubscribedPodcastsToSync
+  case allEpisodes
+  case episodeFilters
+  case unplayedOnly
+  case downloadedOnly
+  case podcastFilter
+  case allPodcasts
+  case durationFilter
+  case anyDuration
+  case under15Minutes
+  case minutes15To30
+  case minutes30To60
+  case hourOrMore
+  case unknownDuration
+  case resetEpisodeFilters
+  case noMatchingEpisodes
+  case loadingEpisodes
+  case refreshEpisodes
+  case episodeRefreshFailed
 }
 
 final class LocalizationService: ObservableObject {
@@ -224,7 +242,25 @@ final class LocalizationService: ObservableObject {
       .githubTokenInvalid: "Saved GitHub token is invalid",
       .githubSyncInvalidURL: "GitHub sync URL is invalid",
       .githubSyncInvalidResponse: "GitHub returned an invalid response",
-      .noSubscribedPodcastsToSync: "No subscribed podcasts to sync"
+      .noSubscribedPodcastsToSync: "No subscribed podcasts to sync",
+      .allEpisodes: "All Episodes",
+      .episodeFilters: "Filters",
+      .unplayedOnly: "Unplayed only",
+      .downloadedOnly: "Downloaded only",
+      .podcastFilter: "Podcast",
+      .allPodcasts: "All podcasts",
+      .durationFilter: "Duration",
+      .anyDuration: "Any duration",
+      .under15Minutes: "Under 15 minutes",
+      .minutes15To30: "15–30 minutes",
+      .minutes30To60: "30–60 minutes",
+      .hourOrMore: "60 minutes or more",
+      .unknownDuration: "Unknown duration",
+      .resetEpisodeFilters: "Reset filters",
+      .noMatchingEpisodes: "No episodes match these filters",
+      .loadingEpisodes: "Loading episodes…",
+      .refreshEpisodes: "Refresh episodes",
+      .episodeRefreshFailed: "Some feeds could not refresh. Cached episodes are still available."
     ],
     .chinese: [
       .podcasts: "播客",
@@ -321,7 +357,25 @@ final class LocalizationService: ObservableObject {
       .githubTokenInvalid: "已保存的 GitHub 令牌无效",
       .githubSyncInvalidURL: "GitHub 同步地址无效",
       .githubSyncInvalidResponse: "GitHub 返回了无效响应",
-      .noSubscribedPodcastsToSync: "没有可同步的订阅播客"
+      .noSubscribedPodcastsToSync: "没有可同步的订阅播客",
+      .allEpisodes: "全部单集",
+      .episodeFilters: "筛选",
+      .unplayedOnly: "仅未播放",
+      .downloadedOnly: "仅已下载",
+      .podcastFilter: "播客",
+      .allPodcasts: "全部播客",
+      .durationFilter: "时长",
+      .anyDuration: "不限时长",
+      .under15Minutes: "少于15分钟",
+      .minutes15To30: "15–30分钟",
+      .minutes30To60: "30–60分钟",
+      .hourOrMore: "60分钟及以上",
+      .unknownDuration: "时长未知",
+      .resetEpisodeFilters: "重置筛选",
+      .noMatchingEpisodes: "没有符合筛选条件的单集",
+      .loadingEpisodes: "正在加载单集…",
+      .refreshEpisodes: "刷新单集",
+      .episodeRefreshFailed: "部分订阅源刷新失败，仍可查看已缓存的单集。"
     ]
   ]
 

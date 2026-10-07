@@ -13,6 +13,7 @@ extension Notification.Name {
   static let downloadComplete = NSNotification.Name("downloadComplete")
   static let listeningStatsDidChange = NSNotification.Name("listeningStatsDidChange")
   static let episodePlaybackStateDidChange = NSNotification.Name("episodePlaybackStateDidChange")
+  static let episodeLibraryDidChange = NSNotification.Name("episodeLibraryDidChange")
   static let subscribedPodcastsDidChange = NSNotification.Name("subscribedPodcastsDidChange")
   static let githubSubscriptionSyncDidComplete = NSNotification.Name("githubSubscriptionSyncDidComplete")
 }

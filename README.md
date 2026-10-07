@@ -51,6 +51,26 @@ Notifications setting and iOS authorization, and are checked when RSS feeds
 refresh. The first refresh establishes a baseline without historical alerts;
 closed-app discovery is not guaranteed. See [notification behavior and testing](docs/podcast-notifications.md).
 
+## Episode Filters
+
+Open **Podcasts → All Episodes** to browse episodes from subscribed feeds, newest
+first. Combine **Unplayed only**, **Downloaded only**, **Podcast**, and **Duration**
+filters; **Reset filters** restores the full list. Partially listened episodes
+remain unplayed until marked or completed. Duration ranges are under 15 minutes,
+15–30, 30–60, and 60 or more, with a separate unknown-duration option. Boundaries
+belong to the longer range. Filters apply to reported episode duration, not time
+remaining, and last while the screen remains open.
+
+Feed metadata is cached on successful refreshes. The first visit refreshes
+subscriptions, and the refresh button checks again. Once cached, episodes remain
+visible offline and failed feeds retain their previous snapshot. Older cached
+items with available downloads are retained even if a feed drops them; missing
+download files do not match the download filter. Existing downloads acquire feed
+ownership when their metadata is first fetched, so a first visit offline may have
+no cached episodes. Unsubscribing removes that feed's cached library metadata.
+Select a result to open its existing episode/playback controls; its queue uses
+the filtered results. Long-press a result to mark it played or unplayed.
+
 ## Tests
 
 The shared `Podcasts` scheme runs `PodcastsTests`, covering solid-color artwork
@@ -58,6 +78,9 @@ placeholders and local playback (play, pause, seek, and queue navigation).
 Speed tests cover saved/default selections, paused changes, resume, episode
 switches, rate-correct listening statistics, playback metadata, and
 English/Chinese player renderings.
+Episode filter tests cover combined criteria, duration boundaries, persistent
+feed ownership, offline/partial refreshes, missing download files, unsubscribe
+races, and English/Chinese narrow-screen and large-text renderings.
 Use the same runner as CI:
 
 ```sh
